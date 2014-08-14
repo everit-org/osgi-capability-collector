@@ -112,5 +112,10 @@
       <version>4.3.1</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>org.everit.osgi.bundles</groupId>
+      <artifactId>org.everit.osgi.bundles.org.apache.felix.utils</artifactId>
+      <version>1.6.0</version>
+    </dependency>
   </dependencies>
 </project>
