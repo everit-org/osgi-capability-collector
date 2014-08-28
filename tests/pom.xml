@@ -51,7 +51,7 @@
             <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
             <Import-Package>*</Import-Package>
             <Export-Package />
-            <EOSGi-TestNum>0</EOSGi-TestNum>
+            <EOSGi-TestNum>8</EOSGi-TestNum>
           </instructions>
         </configuration>
       </plugin>
@@ -230,5 +230,6 @@
       <artifactId>org.everit.osgi.servicecollector</artifactId>
       <version>${project.version}</version>
     </dependency>
+
   </dependencies>
 </project>
