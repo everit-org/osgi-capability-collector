@@ -26,5 +26,5 @@ public interface ReferenceActionHandler<S> {
 
     void unsatisfied();
 
-    void unbind(String referenceItemName);
+    void unbind(String referenceItemId);
 }

@@ -22,6 +22,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -51,9 +53,87 @@ public class ReferenceTracker<S> {
         }
 
         @Override
-        public void modifiedService(ServiceReference<S> reference, ServiceReference<S> service) {
-            // TODO Check for existing and search for replacement for them.
+        public void modifiedService(ServiceReference<S> reference, ServiceReference<S> tracked) {
+            WriteLock writeLock = itemsRWLock.writeLock();
+            writeLock.lock();
+
+            if (rebindOnReplace) {
+                Collection<ReferenceItem<S>> items = satisfiedReferenceItems.get(reference);
+                if (items != null) {
+                    for (Iterator<ReferenceItem<S>> iterator = items.iterator(); iterator.hasNext();) {
+                        ReferenceItem<S> item = iterator.next();
+                        Filter filter = item.getFilter();
+                        if (filter != null && !filter.match(reference)) {
+                            iterator.remove();
+                            ServiceReference<S> newReference = searchNewReferenceForItem(item);
+                            if (newReference != null) {
+                                addItemToSatisfiedMap(item, newReference);
+                                S service = bundleContext.getService(newReference);
+
+                                // TODO handle exceptions
+                                actionHandler.bind(item.getReferenceItemId(), newReference, service);
+                            } else {
+                                boolean satisfied = isSatisfied();
+                                unsatisfiedItems.add(item);
+                                if (satisfied) {
+                                    // TODO handle exceptions
+                                    actionHandler.unsatisfied();
+                                }
+
+                                // TODO handle exceptions
+                                actionHandler.unbind(item.getReferenceItemId());
+
+                            }
+                            bundleContext.ungetService(reference);
+                        }
+                    }
+                }
+            } else {
+                Collection<ReferenceItem<S>> items = satisfiedReferenceItems.get(reference);
+                if (items != null) {
+                    List<ReferenceItem<S>> notMatchedItems = new LinkedList<ReferenceItem<S>>();
+                    for (Iterator<ReferenceItem<S>> iterator = items.iterator(); iterator.hasNext();) {
+                        ReferenceItem<S> item = iterator.next();
+                        Filter filter = item.getFilter();
+                        if (filter != null && !filter.match(reference)) {
+                            notMatchedItems.add(item);
+
+                            if (isSatisfied()) {
+                                // TODO handle exceptions
+                                actionHandler.unsatisfied();
+                            }
+                            // TODO handle exceptions
+                            actionHandler.unbind(item.getReferenceItemId());
+                            bundleContext.ungetService(reference);
+                        }
+                    }
+
+                    boolean unsatisfied = !notMatchedItems.isEmpty();
+                    items.removeAll(notMatchedItems);
+                    if (items.isEmpty()) {
+                        satisfiedReferenceItems.remove(reference);
+                    }
+                    for (Iterator<ReferenceItem<S>> iterator = notMatchedItems.iterator(); iterator.hasNext();) {
+                        ReferenceItem<S> item = iterator.next();
+                        ServiceReference<S> newReference = searchNewReferenceForItem(item);
+                        if (newReference != null) {
+                            iterator.remove();
+                            addItemToSatisfiedMap(item, newReference);
+                            // TODO handle exceptions
+                            S service = bundleContext.getService(newReference);
+                            actionHandler.bind(item.getReferenceItemId(), newReference, service);
+                        }
+                    }
+                    unsatisfiedItems.addAll(notMatchedItems);
+                    if (unsatisfied && isSatisfied()) {
+                        // TODO handle exceptions
+                        actionHandler.satisfied();
+                    }
+                }
+            }
             tryServiceOnUnsatisfiedItems(reference);
+
+            writeLock.unlock();
         }
 
         @Override
@@ -63,28 +143,29 @@ public class ReferenceTracker<S> {
 
             if (rebindOnReplace) {
                 Collection<ReferenceItem<S>> items = satisfiedReferenceItems.get(reference);
-                Iterator<ReferenceItem<S>> iterator = items.iterator();
-                while (iterator.hasNext()) {
-                    ReferenceItem<S> item = iterator.next();
-                    ServiceReference<S> newReference = searchNewReferenceForItem(item);
-                    if (newReference != null) {
-                        S newService = bundleContext.getService(newReference);
+                if (items != null) {
+                    Iterator<ReferenceItem<S>> iterator = items.iterator();
+                    while (iterator.hasNext()) {
+                        ReferenceItem<S> item = iterator.next();
+                        ServiceReference<S> newReference = searchNewReferenceForItem(item);
+                        if (newReference != null) {
+                            S newService = bundleContext.getService(newReference);
 
-                        // TODO handle exceptions
-                        actionHandler.bind(item.getReferenceItemId(), newReference, newService);
-
-                        bundleContext.ungetService(reference);
-                    } else {
-                        boolean satisfied = isSatisfied();
-                        iterator.remove();
-                        unsatisfiedItems.add(item);
-                        if (satisfied) {
                             // TODO handle exceptions
-                            actionHandler.unsatisfied();
-                        }
+                            actionHandler.bind(item.getReferenceItemId(), newReference, newService);
+                        } else {
+                            boolean satisfied = isSatisfied();
+                            iterator.remove();
+                            unsatisfiedItems.add(item);
+                            if (satisfied) {
+                                // TODO handle exceptions
+                                actionHandler.unsatisfied();
+                            }
 
-                        // TODO handle exceptions
-                        actionHandler.unbind(item.getReferenceItemId());
+                            // TODO handle exceptions
+                            actionHandler.unbind(item.getReferenceItemId());
+                        }
+                        bundleContext.ungetService(reference);
                     }
                 }
 
@@ -105,9 +186,15 @@ public class ReferenceTracker<S> {
 
                     for (ReferenceItem<S> item : items) {
                         ServiceReference<S> newReference = searchNewReferenceForItem(item);
-                        // TODO handle exceptions
-                        actionHandler.bind(item.getReferenceItemId(), newReference,
-                                bundleContext.getService(newReference));
+
+                        if (newReference != null) {
+                            // TODO handle exceptions
+                            actionHandler.bind(item.getReferenceItemId(), newReference,
+                                    bundleContext.getService(newReference));
+
+                            addItemToSatisfiedMap(item, newReference);
+                            unsatisfiedItems.remove(item);
+                        }
                     }
 
                     if (isSatisfied()) {
@@ -118,7 +205,6 @@ public class ReferenceTracker<S> {
             }
 
             writeLock.unlock();
-
         }
 
     }

@@ -16,37 +16,19 @@
  */
 package org.everit.osgi.servicecollector.tests;
 
-import org.everit.osgi.servicecollector.ReferenceActionHandler;
-import org.junit.Assert;
-import org.osgi.framework.ServiceReference;
+public class StringHolder {
 
-public final class DefaultActionHandler<S> implements ReferenceActionHandler<S> {
+    private final String value;
 
-    private boolean satisfied = false;
-
-    @Override
-    public void bind(String referenceItemId, ServiceReference<S> reference, S service) {
-
+    public StringHolder() {
+        this(null);
     }
 
-    @Override
-    public void satisfied() {
-        Assert.assertFalse(satisfied);
-        satisfied = true;
+    public StringHolder(String value) {
+        this.value = value;
     }
 
-    @Override
-    public void unsatisfied() {
-        Assert.assertTrue(satisfied);
-        satisfied = false;
+    public String getValue() {
+        return value;
     }
-
-    @Override
-    public void unbind(String referenceItemName) {
-    }
-
-    public boolean isSatisfied() {
-        return satisfied;
-    }
-
 }
