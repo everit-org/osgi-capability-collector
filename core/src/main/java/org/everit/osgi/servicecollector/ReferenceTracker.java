@@ -334,7 +334,7 @@ public class ReferenceTracker<S> {
         ReadLock readLock = itemsRWLock.readLock();
         readLock.lock();
 
-        result = satisfiedReferenceItems.size() == 0 && unsatisfiedItems.size() == 0;
+        result = satisfiedReferenceItems.isEmpty() && unsatisfiedItems.isEmpty();
 
         readLock.unlock();
         return result;
@@ -346,10 +346,6 @@ public class ReferenceTracker<S> {
         } else {
             tracker.close();
         }
-    }
-
-    public void updateItems(ReferenceItem<S> items) {
-        // TODO
     }
 
     public void open(boolean trackAllServices) {

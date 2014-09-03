@@ -205,6 +205,10 @@ public class ReferenceTrackerTestComponent {
 
     }
 
+    public void testRebinding() {
+
+    }
+
     private Filter createFilter(String filterString) {
         try {
             return context.createFilter(filterString);
