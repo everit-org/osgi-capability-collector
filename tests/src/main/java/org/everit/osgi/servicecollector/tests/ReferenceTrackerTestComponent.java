@@ -16,8 +16,10 @@
  */
 package org.everit.osgi.servicecollector.tests;
 
+import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.Map;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -44,6 +46,8 @@ import org.osgi.framework.ServiceRegistration;
 @Service(value = ReferenceTrackerTestComponent.class)
 @TestDuringDevelopment
 public class ReferenceTrackerTestComponent {
+
+    private static final Map<String, Object> EMPTY_ATTRIBUTE_MAP = Collections.emptyMap();
 
     private BundleContext context;
 
@@ -99,8 +103,9 @@ public class ReferenceTrackerTestComponent {
     @Test(expected = DuplicateReferenceIdException.class)
     public void testDuplicateReferenceItemId() {
         @SuppressWarnings("unchecked")
-        ReferenceItem<Object>[] items = new ReferenceItem[] { new ReferenceItem<Object>("test", null),
-                new ReferenceItem<Object>("test", null) };
+        ReferenceItem<Object>[] items = new ReferenceItem[] {
+                new ReferenceItem<Object>("test", null, EMPTY_ATTRIBUTE_MAP),
+                new ReferenceItem<Object>("test", null, EMPTY_ATTRIBUTE_MAP) };
 
         new ReferenceTracker<Object>(context, Object.class, items, false, new TestActionHandler<Object>());
     }
@@ -117,7 +122,8 @@ public class ReferenceTrackerTestComponent {
     public void testNullFilter() {
 
         @SuppressWarnings("unchecked")
-        ReferenceItem<StringHolder>[] items = new ReferenceItem[] { new ReferenceItem<Object>("test", null) };
+        ReferenceItem<StringHolder>[] items = new ReferenceItem[] { new ReferenceItem<Object>("test", null,
+                EMPTY_ATTRIBUTE_MAP) };
 
         TestActionHandler<StringHolder> actionHandler = new TestActionHandler<StringHolder>();
 
@@ -143,9 +149,9 @@ public class ReferenceTrackerTestComponent {
     public void testNonRebinding() {
         @SuppressWarnings("unchecked")
         ReferenceItem<StringHolder>[] items = new ReferenceItem[] {
-                new ReferenceItem<Object>("test0", createFilter("(key=0)")),
-                new ReferenceItem<Object>("test0_s", createFilter("(&(key=0)(value=0))")),
-                new ReferenceItem<Object>("test1", createFilter("(key=1)")) };
+                new ReferenceItem<Object>("test0", createFilter("(key=0)"), EMPTY_ATTRIBUTE_MAP),
+                new ReferenceItem<Object>("test0_s", createFilter("(&(key=0)(value=0))"), EMPTY_ATTRIBUTE_MAP),
+                new ReferenceItem<Object>("test1", createFilter("(key=1)"), EMPTY_ATTRIBUTE_MAP) };
 
         TestActionHandler<StringHolder> actionHandler = new TestActionHandler<StringHolder>();
 

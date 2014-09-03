@@ -71,7 +71,7 @@ public class ReferenceTracker<S> {
                                 S service = bundleContext.getService(newReference);
 
                                 // TODO handle exceptions
-                                actionHandler.bind(item.getReferenceItemId(), newReference, service);
+                                actionHandler.bind(item, newReference, service);
                             } else {
                                 boolean satisfied = isSatisfied();
                                 unsatisfiedItems.add(item);
@@ -81,7 +81,7 @@ public class ReferenceTracker<S> {
                                 }
 
                                 // TODO handle exceptions
-                                actionHandler.unbind(item.getReferenceItemId());
+                                actionHandler.unbind(item);
 
                             }
                             bundleContext.ungetService(reference);
@@ -103,7 +103,7 @@ public class ReferenceTracker<S> {
                                 actionHandler.unsatisfied();
                             }
                             // TODO handle exceptions
-                            actionHandler.unbind(item.getReferenceItemId());
+                            actionHandler.unbind(item);
                             bundleContext.ungetService(reference);
                         }
                     }
@@ -121,7 +121,7 @@ public class ReferenceTracker<S> {
                             addItemToSatisfiedMap(item, newReference);
                             // TODO handle exceptions
                             S service = bundleContext.getService(newReference);
-                            actionHandler.bind(item.getReferenceItemId(), newReference, service);
+                            actionHandler.bind(item, newReference, service);
                         }
                     }
                     unsatisfiedItems.addAll(notMatchedItems);
@@ -152,7 +152,7 @@ public class ReferenceTracker<S> {
                             S newService = bundleContext.getService(newReference);
 
                             // TODO handle exceptions
-                            actionHandler.bind(item.getReferenceItemId(), newReference, newService);
+                            actionHandler.bind(item, newReference, newService);
                         } else {
                             boolean satisfied = isSatisfied();
                             iterator.remove();
@@ -163,7 +163,7 @@ public class ReferenceTracker<S> {
                             }
 
                             // TODO handle exceptions
-                            actionHandler.unbind(item.getReferenceItemId());
+                            actionHandler.unbind(item);
                         }
                         bundleContext.ungetService(reference);
                     }
@@ -181,7 +181,7 @@ public class ReferenceTracker<S> {
                     for (ReferenceItem<S> item : items) {
                         bundleContext.ungetService(reference);
                         // TODO handle exceptions
-                        actionHandler.unbind(item.getReferenceItemId());
+                        actionHandler.unbind(item);
                     }
 
                     for (ReferenceItem<S> item : items) {
@@ -189,7 +189,7 @@ public class ReferenceTracker<S> {
 
                         if (newReference != null) {
                             // TODO handle exceptions
-                            actionHandler.bind(item.getReferenceItemId(), newReference,
+                            actionHandler.bind(item, newReference,
                                     bundleContext.getService(newReference));
 
                             addItemToSatisfiedMap(item, newReference);
@@ -301,7 +301,7 @@ public class ReferenceTracker<S> {
         S service = null;
         try {
             service = bundleContext.getService(reference);
-            actionHandler.bind(unsatisfiedItem.getReferenceItemId(), reference, service);
+            actionHandler.bind(unsatisfiedItem, reference, service);
         } catch (RuntimeException e) {
             if (service != null) {
                 bundleContext.ungetService(reference);

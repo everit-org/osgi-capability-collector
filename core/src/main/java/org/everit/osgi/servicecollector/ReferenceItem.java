@@ -16,6 +16,9 @@
  */
 package org.everit.osgi.servicecollector;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.osgi.framework.Filter;
 
 public class ReferenceItem<T> {
@@ -24,9 +27,12 @@ public class ReferenceItem<T> {
 
     private final Filter filter;
 
-    public ReferenceItem(String itemId, Filter filter) {
+    private final Map<String, Object> attributes;
+
+    public ReferenceItem(String itemId, Filter filter, Map<String, Object> attributes) {
         this.referenceItemId = itemId;
         this.filter = filter;
+        this.attributes = new LinkedHashMap<String, Object>(attributes);
     }
 
     public String getReferenceItemId() {
@@ -35,6 +41,10 @@ public class ReferenceItem<T> {
 
     public Filter getFilter() {
         return filter;
+    }
+
+    public Map<String, Object> getAttributes() {
+        return attributes;
     }
 
 }

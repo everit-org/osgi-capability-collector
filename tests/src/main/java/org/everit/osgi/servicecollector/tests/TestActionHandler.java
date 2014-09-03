@@ -21,6 +21,7 @@ import java.util.LinkedList;
 import java.util.Map;
 
 import org.everit.osgi.servicecollector.ReferenceActionHandler;
+import org.everit.osgi.servicecollector.ReferenceItem;
 import org.junit.Assert;
 import org.osgi.framework.ServiceReference;
 
@@ -61,9 +62,9 @@ public final class TestActionHandler<S> implements ReferenceActionHandler<S> {
     private LinkedList<MethodCallData> callHistory = new LinkedList<MethodCallData>();
 
     @Override
-    public void bind(String referenceItemId, ServiceReference<S> reference, S service) {
-        callHistory.add(new MethodCallData(METHOD_BIND, referenceItemId, reference, service));
-        bindings.put(referenceItemId, service);
+    public void bind(ReferenceItem<S> referenceItem, ServiceReference<S> reference, S service) {
+        callHistory.add(new MethodCallData(METHOD_BIND, referenceItem, reference, service));
+        bindings.put(referenceItem.getReferenceItemId(), service);
     }
 
     @Override
@@ -85,7 +86,7 @@ public final class TestActionHandler<S> implements ReferenceActionHandler<S> {
     }
 
     @Override
-    public void unbind(String referenceItemId) {
+    public void unbind(ReferenceItem<S> referenceItemId) {
         callHistory.add(new MethodCallData(METHOD_UNBIND, referenceItemId));
 
         bindings.remove(referenceItemId);
