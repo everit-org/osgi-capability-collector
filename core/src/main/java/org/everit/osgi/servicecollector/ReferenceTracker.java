@@ -63,7 +63,7 @@ public class ReferenceTracker<S> {
                     for (Iterator<ReferenceItem<S>> iterator = items.iterator(); iterator.hasNext();) {
                         ReferenceItem<S> item = iterator.next();
                         Filter filter = item.getFilter();
-                        if (filter != null && !filter.match(reference)) {
+                        if (!matches(reference, filter)) {
                             iterator.remove();
                             ServiceReference<S> newReference = searchNewReferenceForItem(item);
                             if (newReference != null) {
@@ -95,13 +95,14 @@ public class ReferenceTracker<S> {
                     for (Iterator<ReferenceItem<S>> iterator = items.iterator(); iterator.hasNext();) {
                         ReferenceItem<S> item = iterator.next();
                         Filter filter = item.getFilter();
-                        if (filter != null && !filter.match(reference)) {
-                            notMatchedItems.add(item);
-
-                            if (isSatisfied()) {
+                        if (!matches(reference, filter)) {
+                            if (isSatisfied() && notMatchedItems.isEmpty()) {
                                 // TODO handle exceptions
                                 actionHandler.unsatisfied();
                             }
+
+                            notMatchedItems.add(item);
+
                             // TODO handle exceptions
                             actionHandler.unbind(item);
                             bundleContext.ungetService(reference);
@@ -206,7 +207,10 @@ public class ReferenceTracker<S> {
 
             writeLock.unlock();
         }
+    }
 
+    private boolean matches(ServiceReference<S> reference, Filter filter) {
+        return filter == null || filter.match(reference);
     }
 
     private ServiceReference<S> searchNewReferenceForItem(ReferenceItem<S> item) {
@@ -214,7 +218,7 @@ public class ReferenceTracker<S> {
         ServiceReference<S> matchingReference = null;
         for (int i = 0, n = serviceReferences.length; i < n && matchingReference == null; i++) {
             Filter filter = item.getFilter();
-            if (filter == null || filter.match(serviceReferences[i])) {
+            if (matches(serviceReferences[i], filter)) {
                 matchingReference = serviceReferences[i];
             }
         }
@@ -280,7 +284,7 @@ public class ReferenceTracker<S> {
             for (Iterator<ReferenceItem<S>> iterator = unsatisfiedItems.iterator(); iterator.hasNext();) {
                 ReferenceItem<S> unsatisfiedItem = iterator.next();
                 Filter filter = unsatisfiedItem.getFilter();
-                if (filter == null || filter.match(reference)) {
+                if (matches(reference, filter)) {
                     callBindForItem(unsatisfiedItem, reference);
                     iterator.remove();
                     addItemToSatisfiedMap(unsatisfiedItem, reference);

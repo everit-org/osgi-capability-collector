@@ -184,22 +184,61 @@ public class ReferenceTrackerTestComponent {
         test0sSR.unregister();
 
         MethodCallData methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals(methodCall.getMethodName(), TestActionHandler.METHOD_UNSATISFIED);
+        Assert.assertEquals(TestActionHandler.METHOD_UNSATISFIED, methodCall.getMethodName());
 
         methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals(methodCall.getMethodName(), TestActionHandler.METHOD_UNBIND);
+        Assert.assertEquals(TestActionHandler.METHOD_UNBIND, methodCall.getMethodName());
 
         methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals(methodCall.getMethodName(), TestActionHandler.METHOD_UNBIND);
+        Assert.assertEquals(TestActionHandler.METHOD_UNBIND, methodCall.getMethodName());
 
         methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals(methodCall.getMethodName(), TestActionHandler.METHOD_BIND);
+        Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
 
         methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals(methodCall.getMethodName(), TestActionHandler.METHOD_BIND);
+        Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
 
         methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals(methodCall.getMethodName(), TestActionHandler.METHOD_SATISFIED);
+        Assert.assertEquals(TestActionHandler.METHOD_SATISFIED, methodCall.getMethodName());
+
+        test0SR.setProperties(createServiceProps("key", "0", "value", "0", "x", "y"));
+
+        Assert.assertTrue(actionHandler.isSatisfied());
+
+        test0SR.setProperties(createServiceProps("key", "5", "value", "0", "x", "y"));
+
+        Assert.assertFalse(actionHandler.isSatisfied());
+
+        test0SR.setProperties(createServiceProps("key", "0", "value", "0", "x", "y"));
+
+        Assert.assertTrue(actionHandler.isSatisfied());
+
+        ServiceRegistration<StringHolder> test0sSR2 = context.registerService(StringHolder.class,
+                new StringHolder("test0_s2"), createServiceProps("key", "0", "value", "0"));
+
+        actionHandler.clearCallHistory();
+
+        test0SR.setProperties(createServiceProps("key", "5", "value", "0", "x", "y"));
+
+        methodCall = actionHandler.pollMethodCallHistory();
+        Assert.assertEquals(TestActionHandler.METHOD_UNSATISFIED, methodCall.getMethodName());
+
+        methodCall = actionHandler.pollMethodCallHistory();
+        Assert.assertEquals(TestActionHandler.METHOD_UNBIND, methodCall.getMethodName());
+
+        methodCall = actionHandler.pollMethodCallHistory();
+        Assert.assertEquals(TestActionHandler.METHOD_UNBIND, methodCall.getMethodName());
+
+        methodCall = actionHandler.pollMethodCallHistory();
+        Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
+
+        methodCall = actionHandler.pollMethodCallHistory();
+        Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
+
+        methodCall = actionHandler.pollMethodCallHistory();
+        Assert.assertEquals(TestActionHandler.METHOD_SATISFIED, methodCall.getMethodName());
+
+        test0sSR2.unregister();
 
         test1SR.unregister();
 
