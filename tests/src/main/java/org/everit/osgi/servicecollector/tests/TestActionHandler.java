@@ -20,8 +20,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
-import org.everit.osgi.servicecollector.ReferenceActionHandler;
-import org.everit.osgi.servicecollector.ReferenceItem;
+import org.everit.osgi.referencetracker.ReferenceActionHandler;
+import org.everit.osgi.referencetracker.ReferenceItem;
 import org.junit.Assert;
 import org.osgi.framework.ServiceReference;
 

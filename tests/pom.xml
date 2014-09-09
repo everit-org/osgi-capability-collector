@@ -24,11 +24,11 @@
 
   <parent>
     <groupId>org.everit.osgi</groupId>
-    <artifactId>org.everit.osgi.servicecollector.parent</artifactId>
+    <artifactId>org.everit.osgi.referencetracker.parent</artifactId>
     <version>1.0.0</version>
   </parent>
 
-  <artifactId>org.everit.osgi.servicecollector.tests</artifactId>
+  <artifactId>org.everit.osgi.referencetracker.tests</artifactId>
   <version>1.0.0-SNAPSHOT</version>
 
   <properties>
@@ -37,7 +37,7 @@
   </properties>
 
   <packaging>bundle</packaging>
-  <name>Everit - OSGi Service Collector Tests</name>
+  <name>Everit - OSGi Reference Tracker Tests</name>
 
   <build>
     <plugins>
@@ -51,7 +51,7 @@
             <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
             <Import-Package>*</Import-Package>
             <Export-Package />
-            <EOSGi-TestNum>8</EOSGi-TestNum>
+            <EOSGi-TestNum>12</EOSGi-TestNum>
           </instructions>
         </configuration>
       </plugin>
@@ -83,7 +83,7 @@
         </executions>
         <configuration>
           <jacoco>
-            <includes>org.everit.osgi.servicecollector.*</includes>
+            <includes>org.everit.osgi.referencetracker.*</includes>
             <output>$${ if (System.getenv("EOSGI_STOP_AFTER_TESTS").equals("true")) "file"; else "tcpserver"; }</output>
           </jacoco>
           <environments>
@@ -229,7 +229,7 @@
 
     <dependency>
       <groupId>org.everit.osgi</groupId>
-      <artifactId>org.everit.osgi.servicecollector</artifactId>
+      <artifactId>org.everit.osgi.referencetracker</artifactId>
       <version>${project.version}</version>
     </dependency>
 
