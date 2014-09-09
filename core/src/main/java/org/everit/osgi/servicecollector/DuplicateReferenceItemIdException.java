@@ -16,14 +16,14 @@
  */
 package org.everit.osgi.servicecollector;
 
-public class DuplicateReferenceIdException extends RuntimeException {
+public class DuplicateReferenceItemIdException extends RuntimeException {
 
     /**
      * 
      */
     private static final long serialVersionUID = -3478550199163779814L;
 
-    public DuplicateReferenceIdException(String message) {
+    public DuplicateReferenceItemIdException(String message) {
         super(message);
     }
 

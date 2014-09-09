@@ -20,7 +20,7 @@ import org.osgi.framework.ServiceReference;
 
 public interface ReferenceActionHandler<S> {
 
-    void bind(ReferenceItem<S> referenceItem, ServiceReference<S> reference, S service);
+    void bind(ReferenceItem<S> referenceItem, ServiceReference<S> reference, S service, int position);
 
     void satisfied();
 

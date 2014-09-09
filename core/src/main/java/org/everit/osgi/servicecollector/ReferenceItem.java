@@ -18,10 +18,11 @@ package org.everit.osgi.servicecollector;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.osgi.framework.Filter;
 
-public class ReferenceItem<T> {
+public class ReferenceItem<S> {
 
     private final String referenceItemId;
 
@@ -30,6 +31,9 @@ public class ReferenceItem<T> {
     private final Map<String, Object> attributes;
 
     public ReferenceItem(String itemId, Filter filter, Map<String, Object> attributes) {
+        Objects.requireNonNull(itemId, "Reference item id must be provided");
+        Objects.requireNonNull(attributes, "Attributes for reference item must be provided");
+
         this.referenceItemId = itemId;
         this.filter = filter;
         this.attributes = new LinkedHashMap<String, Object>(attributes);
@@ -45,6 +49,51 @@ public class ReferenceItem<T> {
 
     public Map<String, Object> getAttributes() {
         return attributes;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((referenceItemId == null) ? 0 : referenceItemId.hashCode());
+        result = prime * result + ((filter == null) ? 0 : filter.hashCode());
+        result = prime * result + ((attributes == null) ? 0 : attributes.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+
+        @SuppressWarnings("unchecked")
+        ReferenceItem<S> other = (ReferenceItem<S>) obj;
+        if (referenceItemId == null) {
+            if (other.referenceItemId != null)
+                return false;
+        } else if (!referenceItemId.equals(other.referenceItemId))
+            return false;
+        if (filter == null) {
+            if (other.filter != null)
+                return false;
+        } else if (!filter.equals(other.filter))
+            return false;
+        if (attributes == null) {
+            if (other.attributes != null)
+                return false;
+        } else if (!attributes.equals(other.attributes))
+            return false;
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "ReferenceItem [referenceItemId=" + referenceItemId + ", filter=" + filter + ", attributes="
+                + attributes + "]";
     }
 
 }

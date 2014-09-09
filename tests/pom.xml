@@ -93,6 +93,7 @@
               <systemProperties>
                 <jetty.port>8080</jetty.port>
                 <jetty.home.bundle>org.eclipse.jetty.osgi.boot</jetty.home.bundle>
+                <osgi.hook.configurators.exclude>org.eclipse.core.runtime.internal.adaptor.EclipseLogHook</osgi.hook.configurators.exclude>
               </systemProperties>
               <vmOptions>
                 <vmOption>-Xdebug</vmOption>

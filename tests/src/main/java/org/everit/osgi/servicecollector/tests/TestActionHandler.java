@@ -62,7 +62,7 @@ public final class TestActionHandler<S> implements ReferenceActionHandler<S> {
     private LinkedList<MethodCallData> callHistory = new LinkedList<MethodCallData>();
 
     @Override
-    public void bind(ReferenceItem<S> referenceItem, ServiceReference<S> reference, S service) {
+    public void bind(ReferenceItem<S> referenceItem, ServiceReference<S> reference, S service, int position) {
         callHistory.add(new MethodCallData(METHOD_BIND, referenceItem, reference, service));
         bindings.put(referenceItem.getReferenceItemId(), service);
     }

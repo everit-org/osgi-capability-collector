@@ -18,6 +18,7 @@ package org.everit.osgi.servicecollector.tests;
 
 import java.util.Collections;
 import java.util.Dictionary;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 
@@ -27,7 +28,7 @@ import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.everit.osgi.dev.testrunner.TestDuringDevelopment;
-import org.everit.osgi.servicecollector.DuplicateReferenceIdException;
+import org.everit.osgi.servicecollector.DuplicateReferenceItemIdException;
 import org.everit.osgi.servicecollector.ReferenceItem;
 import org.everit.osgi.servicecollector.ReferenceTracker;
 import org.everit.osgi.servicecollector.tests.TestActionHandler.MethodCallData;
@@ -100,7 +101,7 @@ public class ReferenceTrackerTestComponent {
         Assert.assertFalse(actionHandler.isSatisfied());
     }
 
-    @Test(expected = DuplicateReferenceIdException.class)
+    @Test(expected = DuplicateReferenceItemIdException.class)
     public void testDuplicateReferenceItemId() {
         @SuppressWarnings("unchecked")
         ReferenceItem<Object>[] items = new ReferenceItem[] {
@@ -119,6 +120,7 @@ public class ReferenceTrackerTestComponent {
     }
 
     @Test
+    @TestDuringDevelopment
     public void testNullFilter() {
 
         @SuppressWarnings("unchecked")
@@ -145,8 +147,18 @@ public class ReferenceTrackerTestComponent {
 
     }
 
+    @Test(expected = NullPointerException.class)
+    public void testNullItemId() {
+        new ReferenceItem<Object>(null, createFilter("(1=1)"), new HashMap<String, Object>());
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testNullAttributes() {
+        new ReferenceItem<Object>("test", createFilter("(1=1)"), null);
+    }
+
     @Test
-    public void testNonRebinding() {
+    public void testNonSurvivor() {
         @SuppressWarnings("unchecked")
         ReferenceItem<StringHolder>[] items = new ReferenceItem[] {
                 new ReferenceItem<Object>("test0", createFilter("(key=0)"), EMPTY_ATTRIBUTE_MAP),
@@ -250,8 +262,90 @@ public class ReferenceTrackerTestComponent {
 
     }
 
-    public void testRebinding() {
+    @Test
+    public void testSurvivor() {
+        @SuppressWarnings("unchecked")
+        ReferenceItem<StringHolder>[] items = new ReferenceItem[] {
+                new ReferenceItem<Object>("test0", createFilter("(key=0)"), EMPTY_ATTRIBUTE_MAP),
+                new ReferenceItem<Object>("test0_s", createFilter("(&(key=0)(value=0))"), EMPTY_ATTRIBUTE_MAP),
+                new ReferenceItem<Object>("test1", createFilter("(key=1)"), EMPTY_ATTRIBUTE_MAP) };
 
+        TestActionHandler<StringHolder> actionHandler = new TestActionHandler<StringHolder>();
+
+        ReferenceTracker<StringHolder> referenceTracker = new ReferenceTracker<StringHolder>(context,
+                StringHolder.class,
+                items, true, actionHandler);
+
+        referenceTracker.open(false);
+
+        Assert.assertFalse(actionHandler.isSatisfied());
+
+        ServiceRegistration<StringHolder> test0sSR = context.registerService(StringHolder.class,
+                new StringHolder("test0_s"), createServiceProps("key", "0", "value", "0"));
+
+        Assert.assertFalse(actionHandler.isSatisfied());
+        Assert.assertTrue(actionHandler.getBinding("test0").getValue().equals("test0_s"));
+        Assert.assertTrue(actionHandler.getBinding("test0_s").getValue().equals("test0_s"));
+        Assert.assertFalse(actionHandler.containsBinding("test1"));
+
+        ServiceRegistration<StringHolder> test1SR = context.registerService(StringHolder.class,
+                new StringHolder("test1"), createServiceProps("key", "1"));
+
+        Assert.assertTrue(actionHandler.isSatisfied());
+
+        ServiceRegistration<StringHolder> test0SR = context.registerService(StringHolder.class,
+                new StringHolder("test0_s_2"), createServiceProps("key", "0", "value", "0"));
+
+        actionHandler.clearCallHistory();
+
+        test0sSR.unregister();
+
+        MethodCallData methodCall = actionHandler.pollMethodCallHistory();
+        Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
+
+        methodCall = actionHandler.pollMethodCallHistory();
+        Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
+
+        methodCall = actionHandler.pollMethodCallHistory();
+        Assert.assertNull(methodCall);
+
+        test0SR.setProperties(createServiceProps("key", "0", "value", "0", "x", "y"));
+
+        Assert.assertTrue(actionHandler.isSatisfied());
+
+        test0SR.setProperties(createServiceProps("key", "5", "value", "0", "x", "y"));
+
+        Assert.assertFalse(actionHandler.isSatisfied());
+
+        test0SR.setProperties(createServiceProps("key", "0", "value", "0", "x", "y"));
+
+        Assert.assertTrue(actionHandler.isSatisfied());
+
+        ServiceRegistration<StringHolder> test0sSR2 = context.registerService(StringHolder.class,
+                new StringHolder("test0_s2"), createServiceProps("key", "0", "value", "0"));
+
+        actionHandler.clearCallHistory();
+
+        test0SR.setProperties(createServiceProps("key", "5", "value", "0", "x", "y"));
+
+        methodCall = actionHandler.pollMethodCallHistory();
+        Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
+
+        methodCall = actionHandler.pollMethodCallHistory();
+        Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
+
+        methodCall = actionHandler.pollMethodCallHistory();
+        Assert.assertNull(methodCall);
+
+        test0sSR2.unregister();
+
+        test1SR.unregister();
+
+        test0SR.unregister();
+
+        Assert.assertFalse(actionHandler.isSatisfied());
+
+        referenceTracker.close();
     }
 
     private Filter createFilter(String filterString) {
