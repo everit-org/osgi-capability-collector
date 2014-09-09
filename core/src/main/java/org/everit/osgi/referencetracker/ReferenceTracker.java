@@ -196,8 +196,6 @@ public class ReferenceTracker<S> {
     // TODO handle RuntimeException for every actionHandler call
     private final ReferenceActionHandler<S> actionHandler;
 
-    // TODO handle positions
-
     private BundleContext bundleContext;
 
     private final ReentrantReadWriteLock itemsRWLock = new ReentrantReadWriteLock(false);
@@ -246,13 +244,8 @@ public class ReferenceTracker<S> {
         items.add(unsatisfiedItem);
     }
 
-    private void callBindForItem(ReferenceItem<S> unsatisfiedItem, ServiceReference<S> reference) {
-        S service = bundleContext.getService(reference);
-        callBindWithPosition(unsatisfiedItem, reference, service);
-
-    }
-
-    private void callBindWithPosition(ReferenceItem<S> item, ServiceReference<S> serviceReference, S service) {
+    private void callBindForItem(ReferenceItem<S> item, ServiceReference<S> serviceReference) {
+        S service = bundleContext.getService(serviceReference);
         actionHandler.bind(item, serviceReference, service);
     }
 
@@ -395,7 +388,29 @@ public class ReferenceTracker<S> {
 
         satisfied = removeDeletedItemsFromSatisfied(newItemSet, satisfied, existedItems);
 
-        // TODO handle new items
+        if (!survivor && satisfied && existedItems.size() < newItemSet.size()) {
+            actionHandler.unsatisfied();
+            satisfied = false;
+        }
+
+        for (ReferenceItem<S> newItem : newItemSet) {
+            if (!existedItems.contains(newItem)) {
+                ServiceReference<S> serviceReferenceForNewItem = searchNewReferenceForItem(newItem);
+                if (serviceReferenceForNewItem == null) {
+                    if (satisfied) {
+                        actionHandler.unsatisfied();
+                        satisfied = false;
+                    }
+                } else {
+                    addItemToSatisfiedMap(newItem, serviceReferenceForNewItem);
+                    callBindForItem(newItem, serviceReferenceForNewItem);
+                }
+            }
+        }
+
+        if (!satisfied && isSatisfied()) {
+            actionHandler.satisfied();
+        }
 
         writeLock.unlock();
     }
