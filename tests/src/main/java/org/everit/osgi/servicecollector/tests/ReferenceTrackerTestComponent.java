@@ -389,6 +389,15 @@ public class ReferenceTrackerTestComponent {
 
     }
 
+    @Test(expected = NullPointerException.class)
+    public void testUpdateItemsNullArray() {
+        ReferenceTracker<StringHolder> referenceTracker = new ReferenceTracker<StringHolder>(context,
+                StringHolder.class, EMPTY_ITEMS, false, new TestActionHandler<StringHolder>());
+
+        referenceTracker.updateItems(null);
+
+    }
+
     @Test
     public void testUpdateItemsReplaceItemToExisting() {
         testUpdateItemsEmptyItemsChange(true);
@@ -440,6 +449,29 @@ public class ReferenceTrackerTestComponent {
         referenceTracker.open(false);
 
         referenceTracker.close();
+    }
+
+    @Test
+    public void testUpdateItemsUnopenedTracker() {
+        TestActionHandler<StringHolder> actionHandler = new TestActionHandler<StringHolder>();
+        ReferenceTracker<StringHolder> referenceTracker = new ReferenceTracker<StringHolder>(context,
+                StringHolder.class, EMPTY_ITEMS, true, actionHandler);
+
+        Assert.assertFalse(referenceTracker.isSatisfied());
+
+        @SuppressWarnings("unchecked")
+        ReferenceItem<StringHolder>[] items = new ReferenceItem[] {
+                new ReferenceItem<StringHolder>("1", createFilter("(key=1)"), new HashMap<String, Object>()) };
+
+        referenceTracker.updateItems(items);
+
+        Assert.assertFalse(referenceTracker.isSatisfied());
+        Assert.assertNull(actionHandler.pollMethodCallHistory());
+
+        referenceTracker.updateItems(EMPTY_ITEMS);
+
+        Assert.assertFalse(referenceTracker.isSatisfied());
+        Assert.assertNull(actionHandler.pollMethodCallHistory());
     }
 
     /**

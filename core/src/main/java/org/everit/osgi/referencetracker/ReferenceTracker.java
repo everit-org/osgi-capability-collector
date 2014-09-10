@@ -254,6 +254,10 @@ public class ReferenceTracker<S> {
     }
 
     public boolean isSatisfied() {
+        if (!opened.get()) {
+            return false;
+        }
+
         ReadLock readLock = itemsRWLock.readLock();
         readLock.lock();
         boolean result = unsatisfiedItems.isEmpty();
@@ -379,6 +383,7 @@ public class ReferenceTracker<S> {
      *             if two or more reference items contain the same id.
      */
     public void updateItems(ReferenceItem<S>[] items) {
+        Objects.requireNonNull(items, "Items cannot be null");
         validateItems(items);
 
         WriteLock writeLock = itemsRWLock.writeLock();
@@ -386,7 +391,7 @@ public class ReferenceTracker<S> {
 
         boolean thereWereItems = !noItems();
 
-        if (items.length > 0 && !thereWereItems) {
+        if (opened.get() && items.length > 0 && !thereWereItems) {
             tracker.open();
         }
 
@@ -424,7 +429,7 @@ public class ReferenceTracker<S> {
             actionHandler.satisfied();
         }
 
-        if (thereWereItems && noItems()) {
+        if (opened.get() && thereWereItems && noItems()) {
             tracker.close();
         }
 
