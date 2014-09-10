@@ -196,7 +196,7 @@ public class ReferenceTracker<S> {
     // TODO handle RuntimeException for every actionHandler call
     private final ReferenceActionHandler<S> actionHandler;
 
-    private BundleContext bundleContext;
+    private final BundleContext bundleContext;
 
     private final ReentrantReadWriteLock itemsRWLock = new ReentrantReadWriteLock(false);
 
@@ -205,7 +205,7 @@ public class ReferenceTracker<S> {
     private final Map<ServiceReference<S>, Collection<ReferenceItem<S>>> satisfiedReferenceItems =
             new HashMap<ServiceReference<S>, Collection<ReferenceItem<S>>>();
 
-    private boolean survivor;
+    private final boolean survivor;
 
     private final ServiceTracker<S, ServiceReference<S>> tracker;
 
@@ -225,11 +225,6 @@ public class ReferenceTracker<S> {
         this.unsatisfiedItems.addAll(Arrays.asList(items));
 
         validateItems(items);
-
-        if (noItems()) {
-            tracker = null;
-            return;
-        }
 
         tracker = new ServiceTracker<S, ServiceReference<S>>(context, referenceType,
                 new ReferenceTrackerCustomizer());
@@ -311,10 +306,10 @@ public class ReferenceTracker<S> {
                 } else {
                     existedItems.add(item);
                 }
-                if (satisfiedItemCollection.isEmpty()) {
-                    bundleContext.ungetService(satisfiedEntry.getKey());
-                    satisfiedEntryIterator.remove();
-                }
+            }
+            if (satisfiedItemCollection.isEmpty()) {
+                bundleContext.ungetService(satisfiedEntry.getKey());
+                satisfiedEntryIterator.remove();
             }
         }
         return satisfied;
@@ -373,9 +368,27 @@ public class ReferenceTracker<S> {
 
     }
 
+    /**
+     * Updates the items of this tracker. Those items that were already satisfied remain unchanged.
+     *
+     * @param items
+     *            The list of reference items to be tracked.
+     * @throws NullPointerException
+     *             if any of the element of the item array is null.
+     * @throws DuplicateReferenceItemIdException
+     *             if two or more reference items contain the same id.
+     */
     public void updateItems(ReferenceItem<S>[] items) {
+        validateItems(items);
+
         WriteLock writeLock = itemsRWLock.writeLock();
         writeLock.lock();
+
+        boolean thereWereItems = !noItems();
+
+        if (items.length > 0 && !thereWereItems) {
+            tracker.open();
+        }
 
         Set<ReferenceItem<S>> newItemSet = new HashSet<ReferenceItem<S>>(Arrays.asList(items));
         Set<ReferenceItem<S>> existedItems = new HashSet<ReferenceItem<S>>();
@@ -383,8 +396,6 @@ public class ReferenceTracker<S> {
         boolean satisfied = isSatisfied();
 
         removeNonExistentItemsFromUnsatisfiedCollection(newItemSet, existedItems);
-
-        // Remove items from satisfied that are not contained in the new items
 
         satisfied = removeDeletedItemsFromSatisfied(newItemSet, satisfied, existedItems);
 
@@ -401,6 +412,7 @@ public class ReferenceTracker<S> {
                         actionHandler.unsatisfied();
                         satisfied = false;
                     }
+                    unsatisfiedItems.add(newItem);
                 } else {
                     addItemToSatisfiedMap(newItem, serviceReferenceForNewItem);
                     callBindForItem(newItem, serviceReferenceForNewItem);
@@ -410,6 +422,10 @@ public class ReferenceTracker<S> {
 
         if (!satisfied && isSatisfied()) {
             actionHandler.satisfied();
+        }
+
+        if (thereWereItems && noItems()) {
+            tracker.close();
         }
 
         writeLock.unlock();
