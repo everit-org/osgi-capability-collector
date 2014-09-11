@@ -404,7 +404,7 @@ public class ReferenceTracker<S> {
 
         satisfied = removeDeletedItemsFromSatisfied(newItemSet, satisfied, existedItems);
 
-        if (!survivor && satisfied && existedItems.size() < newItemSet.size()) {
+        if (!survivor && satisfied && !existedItems.equals(newItemSet)) {
             actionHandler.unsatisfied();
             satisfied = false;
         }
