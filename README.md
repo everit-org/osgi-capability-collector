@@ -66,4 +66,6 @@ end, the _satisfied_ method of _actionHandler_ be called.
 ### Updating a dinamyc tracker
 
 The tracker is _satisfied_ until it processes an item from the new item list
-that cannot be satisfied.  
+that cannot be satisfied.
+
+[![Analytics](https://ga-beacon.appspot.com/UA-15041869-4/everit-org/osgi-reference-tracker)](https://github.com/igrigorik/ga-beacon)
