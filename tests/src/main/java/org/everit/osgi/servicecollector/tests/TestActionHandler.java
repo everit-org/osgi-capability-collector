@@ -23,23 +23,14 @@ import java.util.Map;
 import org.everit.osgi.referencetracker.ReferenceActionHandler;
 import org.everit.osgi.referencetracker.ReferenceItem;
 import org.junit.Assert;
-import org.osgi.framework.ServiceReference;
 
-public final class TestActionHandler<S> implements ReferenceActionHandler<S> {
-
-    public static final String METHOD_UNBIND = "unbind";
-
-    public static final String METHOD_UNSATISFIED = "unsatisfied";
-
-    public static final String METHOD_SATISFIED = "satisfied";
-
-    public static final String METHOD_BIND = "bind";
+public final class TestActionHandler<R> implements ReferenceActionHandler<R> {
 
     public static class MethodCallData {
 
-        private String methodName;
+        private final String methodName;
 
-        private Object[] params;
+        private final Object[] params;
 
         public MethodCallData(String methodName, Object... params) {
             this.methodName = methodName;
@@ -55,16 +46,44 @@ public final class TestActionHandler<S> implements ReferenceActionHandler<S> {
         }
     }
 
+    public static final String METHOD_BIND = "bind";
+
+    public static final String METHOD_SATISFIED = "satisfied";
+
+    public static final String METHOD_UNBIND = "unbind";
+
+    public static final String METHOD_UNSATISFIED = "unsatisfied";
+
+    private final Map<String, R> bindings = new HashMap<String, R>();
+
+    private final LinkedList<MethodCallData> callHistory = new LinkedList<MethodCallData>();
+
     private boolean satisfied = false;
 
-    private Map<String, S> bindings = new HashMap<String, S>();
-
-    private LinkedList<MethodCallData> callHistory = new LinkedList<MethodCallData>();
-
     @Override
-    public void bind(ReferenceItem<S> referenceItem, ServiceReference<S> reference, S service) {
-        callHistory.add(new MethodCallData(METHOD_BIND, referenceItem, reference, service));
-        bindings.put(referenceItem.getReferenceItemId(), service);
+    public void bind(ReferenceItem<R> referenceItem, R reference) {
+        callHistory.add(new MethodCallData(METHOD_BIND, referenceItem, reference));
+        bindings.put(referenceItem.getReferenceItemId(), reference);
+    }
+
+    public void clearCallHistory() {
+        callHistory.clear();
+    }
+
+    public boolean containsBinding(String referenceItemId) {
+        return bindings.containsKey(referenceItemId);
+    }
+
+    public R getBinding(String referenceItemId) {
+        return bindings.get(referenceItemId);
+    }
+
+    public boolean isSatisfied() {
+        return satisfied;
+    }
+
+    public MethodCallData pollMethodCallHistory() {
+        return callHistory.poll();
     }
 
     @Override
@@ -77,38 +96,18 @@ public final class TestActionHandler<S> implements ReferenceActionHandler<S> {
     }
 
     @Override
+    public void unbind(ReferenceItem<R> referenceItemId) {
+        callHistory.add(new MethodCallData(METHOD_UNBIND, referenceItemId));
+
+        bindings.remove(referenceItemId);
+    }
+
+    @Override
     public void unsatisfied() {
         callHistory.add(new MethodCallData(METHOD_UNSATISFIED));
 
         Assert.assertTrue(satisfied);
 
         satisfied = false;
-    }
-
-    @Override
-    public void unbind(ReferenceItem<S> referenceItemId) {
-        callHistory.add(new MethodCallData(METHOD_UNBIND, referenceItemId));
-
-        bindings.remove(referenceItemId);
-    }
-
-    public boolean isSatisfied() {
-        return satisfied;
-    }
-
-    public MethodCallData pollMethodCallHistory() {
-        return callHistory.poll();
-    }
-
-    public boolean containsBinding(String referenceItemId) {
-        return bindings.containsKey(referenceItemId);
-    }
-
-    public S getBinding(String referenceItemId) {
-        return bindings.get(referenceItemId);
-    }
-
-    public void clearCallHistory() {
-        callHistory.clear();
     }
 }

@@ -16,15 +16,14 @@
  */
 package org.everit.osgi.referencetracker;
 
-import org.osgi.framework.ServiceReference;
 
-public interface ReferenceActionHandler<S> {
+public interface ReferenceActionHandler<R> {
 
-    void bind(ReferenceItem<S> referenceItem, ServiceReference<S> reference, S service);
+    void bind(ReferenceItem<R> referenceItem, R reference);
 
     void satisfied();
 
-    void unbind(ReferenceItem<S> referenceItem);
+    void unbind(ReferenceItem<R> referenceItem);
 
     void unsatisfied();
 }

@@ -16,19 +16,25 @@
  */
 package org.everit.osgi.referencetracker;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
 import org.osgi.framework.Filter;
 
-public class ReferenceItem<S> {
+/**
+ *
+ * @param <R>
+ *            Type of reference instances.
+ */
+public class ReferenceItem<R> {
 
-    private final String referenceItemId;
+    private final Map<String, Object> attributes;
 
     private final Filter filter;
 
-    private final Map<String, Object> attributes;
+    private final String referenceItemId;
 
     public ReferenceItem(String itemId, Filter filter, Map<String, Object> attributes) {
         Objects.requireNonNull(itemId, "Reference item id must be provided");
@@ -36,19 +42,57 @@ public class ReferenceItem<S> {
 
         this.referenceItemId = itemId;
         this.filter = filter;
-        this.attributes = new LinkedHashMap<String, Object>(attributes);
+        this.attributes = Collections.unmodifiableMap(new LinkedHashMap<String, Object>(attributes));
     }
 
-    public String getReferenceItemId() {
-        return referenceItemId;
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+
+        @SuppressWarnings("unchecked")
+        ReferenceItem<R> other = (ReferenceItem<R>) obj;
+        if (referenceItemId == null) {
+            if (other.referenceItemId != null) {
+                return false;
+            }
+        } else if (!referenceItemId.equals(other.referenceItemId)) {
+            return false;
+        }
+        if (filter == null) {
+            if (other.filter != null) {
+                return false;
+            }
+        } else if (!filter.equals(other.filter)) {
+            return false;
+        }
+        if (attributes == null) {
+            if (other.attributes != null) {
+                return false;
+            }
+        } else if (!attributes.equals(other.attributes)) {
+            return false;
+        }
+        return true;
+    }
+
+    public Map<String, Object> getAttributes() {
+        return attributes;
     }
 
     public Filter getFilter() {
         return filter;
     }
 
-    public Map<String, Object> getAttributes() {
-        return attributes;
+    public String getReferenceItemId() {
+        return referenceItemId;
     }
 
     @Override
@@ -59,35 +103,6 @@ public class ReferenceItem<S> {
         result = prime * result + ((filter == null) ? 0 : filter.hashCode());
         result = prime * result + ((attributes == null) ? 0 : attributes.hashCode());
         return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-
-        @SuppressWarnings("unchecked")
-        ReferenceItem<S> other = (ReferenceItem<S>) obj;
-        if (referenceItemId == null) {
-            if (other.referenceItemId != null)
-                return false;
-        } else if (!referenceItemId.equals(other.referenceItemId))
-            return false;
-        if (filter == null) {
-            if (other.filter != null)
-                return false;
-        } else if (!filter.equals(other.filter))
-            return false;
-        if (attributes == null) {
-            if (other.attributes != null)
-                return false;
-        } else if (!attributes.equals(other.attributes))
-            return false;
-        return true;
     }
 
     @Override

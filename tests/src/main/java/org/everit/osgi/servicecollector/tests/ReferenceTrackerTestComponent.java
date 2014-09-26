@@ -30,13 +30,14 @@ import org.apache.felix.scr.annotations.Service;
 import org.everit.osgi.dev.testrunner.TestDuringDevelopment;
 import org.everit.osgi.referencetracker.DuplicateReferenceItemIdException;
 import org.everit.osgi.referencetracker.ReferenceItem;
-import org.everit.osgi.referencetracker.ReferenceTracker;
+import org.everit.osgi.referencetracker.ServiceReferenceTracker;
 import org.everit.osgi.servicecollector.tests.TestActionHandler.MethodCallData;
 import org.junit.Assert;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Filter;
 import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 
 @Component
@@ -51,7 +52,7 @@ public class ReferenceTrackerTestComponent {
     private static final Map<String, Object> EMPTY_ATTRIBUTE_MAP = Collections.emptyMap();
 
     @SuppressWarnings("unchecked")
-    private static ReferenceItem<StringHolder>[] EMPTY_ITEMS = new ReferenceItem[0];
+    private static ReferenceItem<ServiceReference<Object>>[] EMPTY_ITEMS = new ReferenceItem[0];
 
     private BundleContext context;
 
@@ -80,46 +81,51 @@ public class ReferenceTrackerTestComponent {
     @Test(expected = DuplicateReferenceItemIdException.class)
     public void testDuplicateReferenceItemId() {
         @SuppressWarnings("unchecked")
-        ReferenceItem<Object>[] items = new ReferenceItem[] {
-                new ReferenceItem<Object>("test", null, EMPTY_ATTRIBUTE_MAP),
-                new ReferenceItem<Object>("test", null, EMPTY_ATTRIBUTE_MAP) };
+        ReferenceItem<ServiceReference<Object>>[] items = new ReferenceItem[] {
+                new ReferenceItem<ServiceReference<Object>>("test", null, EMPTY_ATTRIBUTE_MAP),
+                new ReferenceItem<ServiceReference<Object>>("test", null, EMPTY_ATTRIBUTE_MAP) };
 
-        new ReferenceTracker<Object>(context, Object.class, items, false, new TestActionHandler<Object>());
+        new ServiceReferenceTracker<Object>(context, Object.class, items, false,
+                new TestActionHandler<ServiceReference<Object>>(), false);
     }
 
     @Test
     public void testNonSurvivor() {
         @SuppressWarnings("unchecked")
-        ReferenceItem<StringHolder>[] items = new ReferenceItem[] {
-                new ReferenceItem<Object>("test0", createFilter("(key=0)"), EMPTY_ATTRIBUTE_MAP),
-                new ReferenceItem<Object>("test0_s", createFilter("(&(key=0)(value=0))"), EMPTY_ATTRIBUTE_MAP),
-                new ReferenceItem<Object>("test1", createFilter("(key=1)"), EMPTY_ATTRIBUTE_MAP) };
+        ReferenceItem<ServiceReference<Object>>[] items = new ReferenceItem[] {
+                new ReferenceItem<ServiceReference<Object>>(
+                        "test0", createFilter("(key=0)"), EMPTY_ATTRIBUTE_MAP),
+                new ReferenceItem<ServiceReference<Object>>(
+                        "test0_s", createFilter("(&(key=0)(value=0))"), EMPTY_ATTRIBUTE_MAP),
+                new ReferenceItem<ServiceReference<Object>>(
+                        "test1", createFilter("(key=1)"), EMPTY_ATTRIBUTE_MAP) };
 
-        TestActionHandler<StringHolder> actionHandler = new TestActionHandler<StringHolder>();
+        TestActionHandler<ServiceReference<Object>> actionHandler =
+                new TestActionHandler<ServiceReference<Object>>();
 
-        ReferenceTracker<StringHolder> referenceTracker = new ReferenceTracker<StringHolder>(context,
-                StringHolder.class,
-                items, false, actionHandler);
+        ServiceReferenceTracker<Object> referenceTracker = new ServiceReferenceTracker<Object>(context,
+                Object.class,
+                items, false, actionHandler, false);
 
-        referenceTracker.open(false);
+        referenceTracker.open();
 
         Assert.assertFalse(actionHandler.isSatisfied());
 
-        ServiceRegistration<StringHolder> test0sSR = context.registerService(StringHolder.class,
-                new StringHolder("test0_s"), createServiceProps("key", "0", "value", "0"));
+        ServiceRegistration<Object> test0sSR = context.registerService(Object.class,
+                new Object(), createServiceProps("key", "0", "value", "0"));
 
         Assert.assertFalse(actionHandler.isSatisfied());
-        Assert.assertTrue(actionHandler.getBinding("test0").getValue().equals("test0_s"));
-        Assert.assertTrue(actionHandler.getBinding("test0_s").getValue().equals("test0_s"));
+        Assert.assertEquals("0", actionHandler.getBinding("test0").getProperty("value"));
+        Assert.assertEquals("0", actionHandler.getBinding("test0_s").getProperty("value"));
         Assert.assertFalse(actionHandler.containsBinding("test1"));
 
-        ServiceRegistration<StringHolder> test1SR = context.registerService(StringHolder.class,
-                new StringHolder("test1"), createServiceProps("key", "1"));
+        ServiceRegistration<Object> test1SR = context.registerService(Object.class,
+                new Object(), createServiceProps("key", "1"));
 
         Assert.assertTrue(actionHandler.isSatisfied());
 
-        ServiceRegistration<StringHolder> test0SR = context.registerService(StringHolder.class,
-                new StringHolder("test0_s_2"), createServiceProps("key", "0", "value", "0"));
+        ServiceRegistration<Object> test0SR = context.registerService(Object.class,
+                new Object(), createServiceProps("key", "0", "value", "0"));
 
         actionHandler.clearCallHistory();
 
@@ -155,8 +161,8 @@ public class ReferenceTrackerTestComponent {
 
         Assert.assertTrue(actionHandler.isSatisfied());
 
-        ServiceRegistration<StringHolder> test0sSR2 = context.registerService(StringHolder.class,
-                new StringHolder("test0_s2"), createServiceProps("key", "0", "value", "0"));
+        ServiceRegistration<Object> test0sSR2 = context.registerService(Object.class,
+                new Object(), createServiceProps("key", "0", "value", "0"));
 
         actionHandler.clearCallHistory();
 
@@ -194,7 +200,7 @@ public class ReferenceTrackerTestComponent {
 
     @Test(expected = NullPointerException.class)
     public void testNullActionHandler() {
-        new ReferenceTracker<StringHolder>(context, StringHolder.class, EMPTY_ITEMS, false, null);
+        new ServiceReferenceTracker<Object>(context, Object.class, EMPTY_ITEMS, false, null, false);
     }
 
     @Test(expected = NullPointerException.class)
@@ -204,8 +210,8 @@ public class ReferenceTrackerTestComponent {
 
     @Test(expected = NullPointerException.class)
     public void testNullContext() {
-        new ReferenceTracker<StringHolder>(null, StringHolder.class, EMPTY_ITEMS, false,
-                new TestActionHandler<StringHolder>());
+        new ServiceReferenceTracker<Object>(null, Object.class, EMPTY_ITEMS, false,
+                new TestActionHandler<ServiceReference<Object>>(), false);
     }
 
     @Test
@@ -213,20 +219,21 @@ public class ReferenceTrackerTestComponent {
     public void testNullFilter() {
 
         @SuppressWarnings("unchecked")
-        ReferenceItem<StringHolder>[] items = new ReferenceItem[] { new ReferenceItem<Object>("test", null,
-                EMPTY_ATTRIBUTE_MAP) };
+        ReferenceItem<ServiceReference<Object>>[] items = new ReferenceItem[] {
+                new ReferenceItem<ServiceReference<Object>>("test", null, EMPTY_ATTRIBUTE_MAP) };
 
-        TestActionHandler<StringHolder> actionHandler = new TestActionHandler<StringHolder>();
+        TestActionHandler<ServiceReference<Object>> actionHandler =
+                new TestActionHandler<ServiceReference<Object>>();
 
-        ReferenceTracker<StringHolder> referenceTracker = new ReferenceTracker<StringHolder>(context,
-                StringHolder.class,
-                items, false, actionHandler);
+        ServiceReferenceTracker<Object> referenceTracker = new ServiceReferenceTracker<Object>(context,
+                Object.class,
+                items, false, actionHandler, false);
 
-        referenceTracker.open(false);
+        referenceTracker.open();
         Assert.assertFalse(actionHandler.isSatisfied());
 
-        ServiceRegistration<StringHolder> serviceRegistration = context.registerService(StringHolder.class,
-                new StringHolder(), null);
+        ServiceRegistration<Object> serviceRegistration = context.registerService(Object.class,
+                new Object(), null);
 
         Assert.assertTrue(actionHandler.isSatisfied());
         serviceRegistration.unregister();
@@ -239,9 +246,10 @@ public class ReferenceTrackerTestComponent {
     @Test(expected = NullPointerException.class)
     public void testNullItem() {
         @SuppressWarnings("unchecked")
-        ReferenceItem<Object>[] items = new ReferenceItem[] { null };
+        ReferenceItem<ServiceReference<Object>>[] items = new ReferenceItem[] { null };
 
-        new ReferenceTracker<Object>(context, Object.class, items, false, new TestActionHandler<Object>());
+        new ServiceReferenceTracker<Object>(context, Object.class, items, false,
+                new TestActionHandler<ServiceReference<Object>>(), false);
     }
 
     @Test(expected = NullPointerException.class)
@@ -251,47 +259,49 @@ public class ReferenceTrackerTestComponent {
 
     @Test(expected = NullPointerException.class)
     public void testNullItems() {
-        new ReferenceTracker<Object>(context, Object.class, null, false, new TestActionHandler<Object>());
+        new ServiceReferenceTracker<Object>(context, Object.class, null, false,
+                new TestActionHandler<ServiceReference<Object>>(), false);
     }
 
     @Test(expected = NullPointerException.class)
     public void testNullReferenceType() {
-        new ReferenceTracker<StringHolder>(context, null, EMPTY_ITEMS, false, new TestActionHandler<StringHolder>());
+        new ServiceReferenceTracker<Object>(context, null, EMPTY_ITEMS, false,
+                new TestActionHandler<ServiceReference<Object>>(), false);
     }
 
     @Test
     public void testSurvivor() {
         @SuppressWarnings("unchecked")
-        ReferenceItem<StringHolder>[] items = new ReferenceItem[] {
+        ReferenceItem<ServiceReference<Object>>[] items = new ReferenceItem[] {
                 new ReferenceItem<Object>("test0", createFilter("(key=0)"), EMPTY_ATTRIBUTE_MAP),
                 new ReferenceItem<Object>("test0_s", createFilter("(&(key=0)(value=0))"), EMPTY_ATTRIBUTE_MAP),
                 new ReferenceItem<Object>("test1", createFilter("(key=1)"), EMPTY_ATTRIBUTE_MAP) };
 
-        TestActionHandler<StringHolder> actionHandler = new TestActionHandler<StringHolder>();
+        TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
 
-        ReferenceTracker<StringHolder> referenceTracker = new ReferenceTracker<StringHolder>(context,
-                StringHolder.class,
-                items, true, actionHandler);
+        ServiceReferenceTracker<Object> referenceTracker = new ServiceReferenceTracker<Object>(context,
+                Object.class,
+                items, true, actionHandler, false);
 
-        referenceTracker.open(false);
-
-        Assert.assertFalse(actionHandler.isSatisfied());
-
-        ServiceRegistration<StringHolder> test0sSR = context.registerService(StringHolder.class,
-                new StringHolder("test0_s"), createServiceProps("key", "0", "value", "0"));
+        referenceTracker.open();
 
         Assert.assertFalse(actionHandler.isSatisfied());
-        Assert.assertTrue(actionHandler.getBinding("test0").getValue().equals("test0_s"));
-        Assert.assertTrue(actionHandler.getBinding("test0_s").getValue().equals("test0_s"));
+
+        ServiceRegistration<Object> test0sSR = context.registerService(Object.class,
+                new Object(), createServiceProps("key", "0", "value", "0"));
+
+        Assert.assertFalse(actionHandler.isSatisfied());
+        Assert.assertEquals("0", actionHandler.getBinding("test0").getProperty("value"));
+        Assert.assertEquals("0", actionHandler.getBinding("test0_s").getProperty("value"));
         Assert.assertFalse(actionHandler.containsBinding("test1"));
 
-        ServiceRegistration<StringHolder> test1SR = context.registerService(StringHolder.class,
-                new StringHolder("test1"), createServiceProps("key", "1"));
+        ServiceRegistration<Object> test1SR = context.registerService(Object.class,
+                new Object(), createServiceProps("key", "1"));
 
         Assert.assertTrue(actionHandler.isSatisfied());
 
-        ServiceRegistration<StringHolder> test0SR = context.registerService(StringHolder.class,
-                new StringHolder("test0_s_2"), createServiceProps("key", "0", "value", "0"));
+        ServiceRegistration<Object> test0SR = context.registerService(Object.class,
+                new Object(), createServiceProps("key", "0", "value", "0"));
 
         actionHandler.clearCallHistory();
 
@@ -318,8 +328,8 @@ public class ReferenceTrackerTestComponent {
 
         Assert.assertTrue(actionHandler.isSatisfied());
 
-        ServiceRegistration<StringHolder> test0sSR2 = context.registerService(StringHolder.class,
-                new StringHolder("test0_s2"), createServiceProps("key", "0", "value", "0"));
+        ServiceRegistration<Object> test0sSR2 = context.registerService(Object.class,
+                new Object(), createServiceProps("key", "0", "value", "0"));
 
         actionHandler.clearCallHistory();
 
@@ -352,17 +362,17 @@ public class ReferenceTrackerTestComponent {
     }
 
     private void testUpdateItemsEmptyItemsChange(boolean survivor) {
-        TestActionHandler<StringHolder> actionHandler = new TestActionHandler<StringHolder>();
-        ReferenceTracker<StringHolder> referenceTracker = new ReferenceTracker<StringHolder>(context,
-                StringHolder.class, EMPTY_ITEMS, true, actionHandler);
+        TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
+        ServiceReferenceTracker<Object> referenceTracker = new ServiceReferenceTracker<Object>(context,
+                Object.class, EMPTY_ITEMS, true, actionHandler, false);
 
-        referenceTracker.open(false);
+        referenceTracker.open();
 
         Assert.assertTrue(referenceTracker.isSatisfied());
 
         @SuppressWarnings("unchecked")
-        ReferenceItem<StringHolder>[] items = new ReferenceItem[] {
-                new ReferenceItem<StringHolder>("1", createFilter("(key=1)"), new HashMap<String, Object>()) };
+        ReferenceItem<ServiceReference<Object>>[] items = new ReferenceItem[] {
+                new ReferenceItem<Object>("1", createFilter("(key=1)"), new HashMap<String, Object>()) };
 
         referenceTracker.updateItems(items);
 
@@ -372,8 +382,8 @@ public class ReferenceTrackerTestComponent {
 
         Assert.assertTrue(referenceTracker.isSatisfied());
 
-        ServiceRegistration<StringHolder> testSR1 = context.registerService(StringHolder.class,
-                new StringHolder("test"), createServiceProps("key", "1"));
+        ServiceRegistration<Object> testSR1 = context.registerService(Object.class,
+                new Object(), createServiceProps("key", "1"));
 
         referenceTracker.updateItems(items);
 
@@ -391,8 +401,8 @@ public class ReferenceTrackerTestComponent {
 
     @Test(expected = NullPointerException.class)
     public void testUpdateItemsNullArray() {
-        ReferenceTracker<StringHolder> referenceTracker = new ReferenceTracker<StringHolder>(context,
-                StringHolder.class, EMPTY_ITEMS, false, new TestActionHandler<StringHolder>());
+        ServiceReferenceTracker<Object> referenceTracker = new ServiceReferenceTracker<Object>(context,
+                Object.class, EMPTY_ITEMS, false, new TestActionHandler<ServiceReference<Object>>(), false);
 
         referenceTracker.updateItems(null);
 
@@ -405,25 +415,27 @@ public class ReferenceTrackerTestComponent {
     }
 
     public void testUpdateItemsReplaceItemToExisting(boolean survivor) {
-        TestActionHandler<StringHolder> actionHandler = new TestActionHandler<StringHolder>();
+        TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
 
         @SuppressWarnings("unchecked")
-        ReferenceItem<StringHolder>[] items1 = new ReferenceItem[] {
-                new ReferenceItem<StringHolder>("1", createFilter("(key=1)"), new HashMap<String, Object>()) };
+        ReferenceItem<ServiceReference<Object>>[] items1 = new ReferenceItem[] {
+                new ReferenceItem<ServiceReference<Object>>("1", createFilter("(key=1)"), new HashMap<String, Object>()) };
 
-        ServiceRegistration<StringHolder> testSR1 = context.registerService(StringHolder.class,
-                new StringHolder("test"), createServiceProps("key", "1", "key", "2"));
+        ServiceRegistration<Object> testSR1 = context.registerService(Object.class,
+                new Object(), createServiceProps("key", "1", "key", "2"));
 
-        ReferenceTracker<StringHolder> referenceTracker = new ReferenceTracker<StringHolder>(context,
-                StringHolder.class, items1, survivor, actionHandler);
+        ServiceReferenceTracker<Object> referenceTracker = new ServiceReferenceTracker<Object>(context,
+                Object.class, items1, survivor, actionHandler, false);
 
         Assert.assertTrue(referenceTracker.isSatisfied());
+
+        referenceTracker.open();
 
         actionHandler.clearCallHistory();
 
         @SuppressWarnings("unchecked")
-        ReferenceItem<StringHolder>[] items2 = new ReferenceItem[] {
-                new ReferenceItem<StringHolder>("1", createFilter("(key=2)"), new HashMap<String, Object>()) };
+        ReferenceItem<ServiceReference<Object>>[] items2 = new ReferenceItem[] {
+                new ReferenceItem<ServiceReference<Object>>("1", createFilter("(key=2)"), new HashMap<String, Object>()) };
 
         referenceTracker.updateItems(items2);
 
@@ -446,22 +458,20 @@ public class ReferenceTrackerTestComponent {
 
         testSR1.unregister();
 
-        referenceTracker.open(false);
-
         referenceTracker.close();
     }
 
     @Test
     public void testUpdateItemsUnopenedTracker() {
-        TestActionHandler<StringHolder> actionHandler = new TestActionHandler<StringHolder>();
-        ReferenceTracker<StringHolder> referenceTracker = new ReferenceTracker<StringHolder>(context,
-                StringHolder.class, EMPTY_ITEMS, true, actionHandler);
+        TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
+        ServiceReferenceTracker<Object> referenceTracker = new ServiceReferenceTracker<Object>(context,
+                Object.class, EMPTY_ITEMS, true, actionHandler, false);
 
         Assert.assertFalse(referenceTracker.isSatisfied());
 
         @SuppressWarnings("unchecked")
-        ReferenceItem<StringHolder>[] items = new ReferenceItem[] {
-                new ReferenceItem<StringHolder>("1", createFilter("(key=1)"), new HashMap<String, Object>()) };
+        ReferenceItem<ServiceReference<Object>>[] items = new ReferenceItem[] {
+                new ReferenceItem<ServiceReference<Object>>("1", createFilter("(key=1)"), new HashMap<String, Object>()) };
 
         referenceTracker.updateItems(items);
 
@@ -480,12 +490,13 @@ public class ReferenceTrackerTestComponent {
      */
     @Test
     public void testZeroItems() {
-        TestActionHandler<StringHolder> actionHandler = new TestActionHandler<StringHolder>();
+        TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
 
-        ReferenceTracker<StringHolder> tracker = new ReferenceTracker<StringHolder>(context, StringHolder.class,
-                EMPTY_ITEMS, false, actionHandler);
+        ServiceReferenceTracker<Object> tracker = new ServiceReferenceTracker<Object>(context,
+                Object.class,
+                EMPTY_ITEMS, false, actionHandler, false);
 
-        tracker.open(false);
+        tracker.open();
 
         Assert.assertTrue(actionHandler.isSatisfied());
 
