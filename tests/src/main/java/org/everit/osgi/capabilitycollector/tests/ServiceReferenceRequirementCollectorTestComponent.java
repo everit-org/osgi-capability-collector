@@ -1,20 +1,20 @@
 /**
- * This file is part of Everit - OSGi Reference Tracker Tests.
+ * This file is part of Everit - OSGi Capability Collector Tests.
  *
- * Everit - OSGi Reference Tracker Tests is free software: you can redistribute it and/or modify
+ * Everit - OSGi Capability Collector Tests is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Everit - OSGi Reference Tracker Tests is distributed in the hope that it will be useful,
+ * Everit - OSGi Capability Collector Tests is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with Everit - OSGi Reference Tracker Tests.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Everit - OSGi Capability Collector Tests.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.everit.osgi.servicecollector.tests;
+package org.everit.osgi.capabilitycollector.tests;
 
 import java.util.Collections;
 import java.util.Dictionary;
@@ -27,11 +27,11 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
+import org.everit.osgi.capabilitycollector.DuplicateRequirementIdException;
+import org.everit.osgi.capabilitycollector.RequirementDefinition;
+import org.everit.osgi.capabilitycollector.ServiceCollector;
+import org.everit.osgi.capabilitycollector.tests.TestActionHandler.MethodCallData;
 import org.everit.osgi.dev.testrunner.TestDuringDevelopment;
-import org.everit.osgi.referencetracker.DuplicateReferenceItemIdException;
-import org.everit.osgi.referencetracker.ReferenceItem;
-import org.everit.osgi.referencetracker.ServiceReferenceTracker;
-import org.everit.osgi.servicecollector.tests.TestActionHandler.MethodCallData;
 import org.junit.Assert;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
@@ -45,14 +45,14 @@ import org.osgi.framework.ServiceRegistration;
         @Property(name = "eosgi.testId", value = "serviceCollectorTest"),
         @Property(name = "eosgi.testEngine", value = "junit4")
 })
-@Service(value = ReferenceTrackerTestComponent.class)
+@Service(value = ServiceReferenceRequirementCollectorTestComponent.class)
 @TestDuringDevelopment
-public class ReferenceTrackerTestComponent {
+public class ServiceReferenceRequirementCollectorTestComponent {
 
     private static final Map<String, Object> EMPTY_ATTRIBUTE_MAP = Collections.emptyMap();
 
     @SuppressWarnings("unchecked")
-    private static ReferenceItem<ServiceReference<Object>>[] EMPTY_ITEMS = new ReferenceItem[0];
+    private static RequirementDefinition<ServiceReference<Object>>[] EMPTY_ITEMS = new RequirementDefinition[0];
 
     private BundleContext context;
 
@@ -78,32 +78,32 @@ public class ReferenceTrackerTestComponent {
         return result;
     }
 
-    @Test(expected = DuplicateReferenceItemIdException.class)
+    @Test(expected = DuplicateRequirementIdException.class)
     public void testDuplicateReferenceItemId() {
         @SuppressWarnings("unchecked")
-        ReferenceItem<ServiceReference<Object>>[] items = new ReferenceItem[] {
-                new ReferenceItem<ServiceReference<Object>>("test", null, EMPTY_ATTRIBUTE_MAP),
-                new ReferenceItem<ServiceReference<Object>>("test", null, EMPTY_ATTRIBUTE_MAP) };
+        RequirementDefinition<ServiceReference<Object>>[] items = new RequirementDefinition[] {
+                new RequirementDefinition<ServiceReference<Object>>("test", null, EMPTY_ATTRIBUTE_MAP),
+                new RequirementDefinition<ServiceReference<Object>>("test", null, EMPTY_ATTRIBUTE_MAP) };
 
-        new ServiceReferenceTracker<Object>(context, Object.class, items, false,
+        new ServiceCollector<Object>(context, Object.class, items, false,
                 new TestActionHandler<ServiceReference<Object>>(), false);
     }
 
     @Test
     public void testNonSurvivor() {
         @SuppressWarnings("unchecked")
-        ReferenceItem<ServiceReference<Object>>[] items = new ReferenceItem[] {
-                new ReferenceItem<ServiceReference<Object>>(
+        RequirementDefinition<ServiceReference<Object>>[] items = new RequirementDefinition[] {
+                new RequirementDefinition<ServiceReference<Object>>(
                         "test0", createFilter("(key=0)"), EMPTY_ATTRIBUTE_MAP),
-                new ReferenceItem<ServiceReference<Object>>(
+                new RequirementDefinition<ServiceReference<Object>>(
                         "test0_s", createFilter("(&(key=0)(value=0))"), EMPTY_ATTRIBUTE_MAP),
-                new ReferenceItem<ServiceReference<Object>>(
+                new RequirementDefinition<ServiceReference<Object>>(
                         "test1", createFilter("(key=1)"), EMPTY_ATTRIBUTE_MAP) };
 
         TestActionHandler<ServiceReference<Object>> actionHandler =
                 new TestActionHandler<ServiceReference<Object>>();
 
-        ServiceReferenceTracker<Object> referenceTracker = new ServiceReferenceTracker<Object>(context,
+        ServiceCollector<Object> referenceTracker = new ServiceCollector<Object>(context,
                 Object.class,
                 items, false, actionHandler, false);
 
@@ -200,17 +200,17 @@ public class ReferenceTrackerTestComponent {
 
     @Test(expected = NullPointerException.class)
     public void testNullActionHandler() {
-        new ServiceReferenceTracker<Object>(context, Object.class, EMPTY_ITEMS, false, null, false);
+        new ServiceCollector<Object>(context, Object.class, EMPTY_ITEMS, false, null, false);
     }
 
     @Test(expected = NullPointerException.class)
     public void testNullAttributes() {
-        new ReferenceItem<Object>("test", createFilter("(1=1)"), null);
+        new RequirementDefinition<Object>("test", createFilter("(1=1)"), null);
     }
 
     @Test(expected = NullPointerException.class)
     public void testNullContext() {
-        new ServiceReferenceTracker<Object>(null, Object.class, EMPTY_ITEMS, false,
+        new ServiceCollector<Object>(null, Object.class, EMPTY_ITEMS, false,
                 new TestActionHandler<ServiceReference<Object>>(), false);
     }
 
@@ -219,13 +219,13 @@ public class ReferenceTrackerTestComponent {
     public void testNullFilter() {
 
         @SuppressWarnings("unchecked")
-        ReferenceItem<ServiceReference<Object>>[] items = new ReferenceItem[] {
-                new ReferenceItem<ServiceReference<Object>>("test", null, EMPTY_ATTRIBUTE_MAP) };
+        RequirementDefinition<ServiceReference<Object>>[] items = new RequirementDefinition[] {
+                new RequirementDefinition<ServiceReference<Object>>("test", null, EMPTY_ATTRIBUTE_MAP) };
 
         TestActionHandler<ServiceReference<Object>> actionHandler =
                 new TestActionHandler<ServiceReference<Object>>();
 
-        ServiceReferenceTracker<Object> referenceTracker = new ServiceReferenceTracker<Object>(context,
+        ServiceCollector<Object> referenceTracker = new ServiceCollector<Object>(context,
                 Object.class,
                 items, false, actionHandler, false);
 
@@ -246,40 +246,40 @@ public class ReferenceTrackerTestComponent {
     @Test(expected = NullPointerException.class)
     public void testNullItem() {
         @SuppressWarnings("unchecked")
-        ReferenceItem<ServiceReference<Object>>[] items = new ReferenceItem[] { null };
+        RequirementDefinition<ServiceReference<Object>>[] items = new RequirementDefinition[] { null };
 
-        new ServiceReferenceTracker<Object>(context, Object.class, items, false,
+        new ServiceCollector<Object>(context, Object.class, items, false,
                 new TestActionHandler<ServiceReference<Object>>(), false);
     }
 
     @Test(expected = NullPointerException.class)
     public void testNullItemId() {
-        new ReferenceItem<Object>(null, createFilter("(1=1)"), new HashMap<String, Object>());
+        new RequirementDefinition<Object>(null, createFilter("(1=1)"), new HashMap<String, Object>());
     }
 
     @Test(expected = NullPointerException.class)
     public void testNullItems() {
-        new ServiceReferenceTracker<Object>(context, Object.class, null, false,
+        new ServiceCollector<Object>(context, Object.class, null, false,
                 new TestActionHandler<ServiceReference<Object>>(), false);
     }
 
     @Test(expected = NullPointerException.class)
     public void testNullReferenceType() {
-        new ServiceReferenceTracker<Object>(context, null, EMPTY_ITEMS, false,
+        new ServiceCollector<Object>(context, null, EMPTY_ITEMS, false,
                 new TestActionHandler<ServiceReference<Object>>(), false);
     }
 
     @Test
     public void testSurvivor() {
         @SuppressWarnings("unchecked")
-        ReferenceItem<ServiceReference<Object>>[] items = new ReferenceItem[] {
-                new ReferenceItem<Object>("test0", createFilter("(key=0)"), EMPTY_ATTRIBUTE_MAP),
-                new ReferenceItem<Object>("test0_s", createFilter("(&(key=0)(value=0))"), EMPTY_ATTRIBUTE_MAP),
-                new ReferenceItem<Object>("test1", createFilter("(key=1)"), EMPTY_ATTRIBUTE_MAP) };
+        RequirementDefinition<ServiceReference<Object>>[] items = new RequirementDefinition[] {
+                new RequirementDefinition<Object>("test0", createFilter("(key=0)"), EMPTY_ATTRIBUTE_MAP),
+                new RequirementDefinition<Object>("test0_s", createFilter("(&(key=0)(value=0))"), EMPTY_ATTRIBUTE_MAP),
+                new RequirementDefinition<Object>("test1", createFilter("(key=1)"), EMPTY_ATTRIBUTE_MAP) };
 
         TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
 
-        ServiceReferenceTracker<Object> referenceTracker = new ServiceReferenceTracker<Object>(context,
+        ServiceCollector<Object> referenceTracker = new ServiceCollector<Object>(context,
                 Object.class,
                 items, true, actionHandler, false);
 
@@ -363,7 +363,7 @@ public class ReferenceTrackerTestComponent {
 
     private void testUpdateItemsEmptyItemsChange(boolean survivor) {
         TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
-        ServiceReferenceTracker<Object> referenceTracker = new ServiceReferenceTracker<Object>(context,
+        ServiceCollector<Object> referenceTracker = new ServiceCollector<Object>(context,
                 Object.class, EMPTY_ITEMS, true, actionHandler, false);
 
         referenceTracker.open();
@@ -371,8 +371,8 @@ public class ReferenceTrackerTestComponent {
         Assert.assertTrue(referenceTracker.isSatisfied());
 
         @SuppressWarnings("unchecked")
-        ReferenceItem<ServiceReference<Object>>[] items = new ReferenceItem[] {
-                new ReferenceItem<Object>("1", createFilter("(key=1)"), new HashMap<String, Object>()) };
+        RequirementDefinition<ServiceReference<Object>>[] items = new RequirementDefinition[] {
+                new RequirementDefinition<Object>("1", createFilter("(key=1)"), new HashMap<String, Object>()) };
 
         referenceTracker.updateItems(items);
 
@@ -401,7 +401,7 @@ public class ReferenceTrackerTestComponent {
 
     @Test(expected = NullPointerException.class)
     public void testUpdateItemsNullArray() {
-        ServiceReferenceTracker<Object> referenceTracker = new ServiceReferenceTracker<Object>(context,
+        ServiceCollector<Object> referenceTracker = new ServiceCollector<Object>(context,
                 Object.class, EMPTY_ITEMS, false, new TestActionHandler<ServiceReference<Object>>(), false);
 
         referenceTracker.updateItems(null);
@@ -418,13 +418,14 @@ public class ReferenceTrackerTestComponent {
         TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
 
         @SuppressWarnings("unchecked")
-        ReferenceItem<ServiceReference<Object>>[] items1 = new ReferenceItem[] {
-                new ReferenceItem<ServiceReference<Object>>("1", createFilter("(key=1)"), new HashMap<String, Object>()) };
+        RequirementDefinition<ServiceReference<Object>>[] items1 = new RequirementDefinition[] {
+                new RequirementDefinition<ServiceReference<Object>>("1", createFilter("(key=1)"),
+                        new HashMap<String, Object>()) };
 
         ServiceRegistration<Object> testSR1 = context.registerService(Object.class,
                 new Object(), createServiceProps("key", "1", "key", "2"));
 
-        ServiceReferenceTracker<Object> referenceTracker = new ServiceReferenceTracker<Object>(context,
+        ServiceCollector<Object> referenceTracker = new ServiceCollector<Object>(context,
                 Object.class, items1, survivor, actionHandler, false);
 
         Assert.assertTrue(referenceTracker.isSatisfied());
@@ -434,8 +435,9 @@ public class ReferenceTrackerTestComponent {
         actionHandler.clearCallHistory();
 
         @SuppressWarnings("unchecked")
-        ReferenceItem<ServiceReference<Object>>[] items2 = new ReferenceItem[] {
-                new ReferenceItem<ServiceReference<Object>>("1", createFilter("(key=2)"), new HashMap<String, Object>()) };
+        RequirementDefinition<ServiceReference<Object>>[] items2 = new RequirementDefinition[] {
+                new RequirementDefinition<ServiceReference<Object>>("1", createFilter("(key=2)"),
+                        new HashMap<String, Object>()) };
 
         referenceTracker.updateItems(items2);
 
@@ -464,14 +466,15 @@ public class ReferenceTrackerTestComponent {
     @Test
     public void testUpdateItemsUnopenedTracker() {
         TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
-        ServiceReferenceTracker<Object> referenceTracker = new ServiceReferenceTracker<Object>(context,
+        ServiceCollector<Object> referenceTracker = new ServiceCollector<Object>(context,
                 Object.class, EMPTY_ITEMS, true, actionHandler, false);
 
         Assert.assertFalse(referenceTracker.isSatisfied());
 
         @SuppressWarnings("unchecked")
-        ReferenceItem<ServiceReference<Object>>[] items = new ReferenceItem[] {
-                new ReferenceItem<ServiceReference<Object>>("1", createFilter("(key=1)"), new HashMap<String, Object>()) };
+        RequirementDefinition<ServiceReference<Object>>[] items = new RequirementDefinition[] {
+                new RequirementDefinition<ServiceReference<Object>>("1", createFilter("(key=1)"),
+                        new HashMap<String, Object>()) };
 
         referenceTracker.updateItems(items);
 
@@ -492,7 +495,7 @@ public class ReferenceTrackerTestComponent {
     public void testZeroItems() {
         TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
 
-        ServiceReferenceTracker<Object> tracker = new ServiceReferenceTracker<Object>(context,
+        ServiceCollector<Object> tracker = new ServiceCollector<Object>(context,
                 Object.class,
                 EMPTY_ITEMS, false, actionHandler, false);
 

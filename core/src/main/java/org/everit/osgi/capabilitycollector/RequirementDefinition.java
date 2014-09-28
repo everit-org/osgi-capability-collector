@@ -1,20 +1,20 @@
 /**
- * This file is part of Everit - OSGi Reference Tracker.
+ * This file is part of Everit - OSGi Capability Collector.
  *
- * Everit - OSGi Reference Tracker is free software: you can redistribute it and/or modify
+ * Everit - OSGi Capability Collector is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Everit - OSGi Reference Tracker is distributed in the hope that it will be useful,
+ * Everit - OSGi Capability Collector is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with Everit - OSGi Reference Tracker.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Everit - OSGi Capability Collector.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.everit.osgi.referencetracker;
+package org.everit.osgi.capabilitycollector;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -25,22 +25,23 @@ import org.osgi.framework.Filter;
 
 /**
  *
- * @param <R>
- *            Type of reference instances.
+ * @param <C>
+ *            Type of capability that satisfies this requirement.
  */
-public class ReferenceItem<R> {
+public class RequirementDefinition<C> {
 
     private final Map<String, Object> attributes;
 
     private final Filter filter;
 
-    private final String referenceItemId;
+    private final String requirementId;
 
-    public ReferenceItem(String itemId, Filter filter, Map<String, Object> attributes) {
-        Objects.requireNonNull(itemId, "Reference item id must be provided");
-        Objects.requireNonNull(attributes, "Attributes for reference item must be provided");
+    public RequirementDefinition(String requirementId, Filter filter, Map<String, Object> attributes) {
+        Objects.requireNonNull(requirementId, "Requirement id must be provided");
+        Objects.requireNonNull(attributes,
+                "Attributes for requirement must be provided at least with a zero element map");
 
-        this.referenceItemId = itemId;
+        this.requirementId = requirementId;
         this.filter = filter;
         this.attributes = Collections.unmodifiableMap(new LinkedHashMap<String, Object>(attributes));
     }
@@ -58,12 +59,12 @@ public class ReferenceItem<R> {
         }
 
         @SuppressWarnings("unchecked")
-        ReferenceItem<R> other = (ReferenceItem<R>) obj;
-        if (referenceItemId == null) {
-            if (other.referenceItemId != null) {
+        RequirementDefinition<C> other = (RequirementDefinition<C>) obj;
+        if (requirementId == null) {
+            if (other.requirementId != null) {
                 return false;
             }
-        } else if (!referenceItemId.equals(other.referenceItemId)) {
+        } else if (!requirementId.equals(other.requirementId)) {
             return false;
         }
         if (filter == null) {
@@ -91,15 +92,15 @@ public class ReferenceItem<R> {
         return filter;
     }
 
-    public String getReferenceItemId() {
-        return referenceItemId;
+    public String getRequirementId() {
+        return requirementId;
     }
 
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((referenceItemId == null) ? 0 : referenceItemId.hashCode());
+        result = prime * result + ((requirementId == null) ? 0 : requirementId.hashCode());
         result = prime * result + ((filter == null) ? 0 : filter.hashCode());
         result = prime * result + ((attributes == null) ? 0 : attributes.hashCode());
         return result;
@@ -107,7 +108,7 @@ public class ReferenceItem<R> {
 
     @Override
     public String toString() {
-        return "ReferenceItem [referenceItemId=" + referenceItemId + ", filter=" + filter + ", attributes="
+        return "RequirementDefinition [requirementId=" + requirementId + ", filter=" + filter + ", attributes="
                 + attributes + "]";
     }
 

@@ -1,20 +1,20 @@
 /**
- * This file is part of Everit - OSGi Reference Tracker.
+ * This file is part of Everit - OSGi Capability Collector.
  *
- * Everit - OSGi Reference Tracker is free software: you can redistribute it and/or modify
+ * Everit - OSGi Capability Collector is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Everit - OSGi Reference Tracker is distributed in the hope that it will be useful,
+ * Everit - OSGi Capability Collector is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with Everit - OSGi Reference Tracker.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Everit - OSGi Capability Collector.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.everit.osgi.referencetracker;
+package org.everit.osgi.capabilitycollector;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Filter;
@@ -22,24 +22,24 @@ import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
-public class ServiceReferenceTracker<S> extends AbstractReferenceTracker<ServiceReference<S>> {
+public class ServiceCollector<S> extends AbstractCapabilityCollector<ServiceReference<S>> {
 
     private class ReferenceTrackerCustomizer implements ServiceTrackerCustomizer<S, ServiceReference<S>> {
 
         @Override
         public ServiceReference<S> addingService(ServiceReference<S> reference) {
-            addingReference(reference);
+            addingCapablility(reference);
             return reference;
         }
 
         @Override
         public void modifiedService(ServiceReference<S> reference, ServiceReference<S> tracked) {
-            modifiedReference(reference);
+            modifiedCapablility(reference);
         }
 
         @Override
         public void removedService(ServiceReference<S> reference, ServiceReference<S> tracked) {
-            removedReference(reference);
+            removedCapability(reference);
         }
     }
 
@@ -47,9 +47,9 @@ public class ServiceReferenceTracker<S> extends AbstractReferenceTracker<Service
 
     private final ServiceTracker<S, ServiceReference<S>> tracker;
 
-    public ServiceReferenceTracker(BundleContext context, Class<S> referenceType,
-            ReferenceItem<ServiceReference<S>>[] items,
-            boolean survivor, ReferenceActionHandler<ServiceReference<S>> actionHandler, boolean trackAllServices) {
+    public ServiceCollector(BundleContext context, Class<S> referenceType,
+            RequirementDefinition<ServiceReference<S>>[] items,
+            boolean survivor, ActionHandler<ServiceReference<S>> actionHandler, boolean trackAllServices) {
         super(context, items, survivor, actionHandler);
 
         this.trackAllServices = trackAllServices;
@@ -63,13 +63,13 @@ public class ServiceReferenceTracker<S> extends AbstractReferenceTracker<Service
     }
 
     @Override
-    protected ServiceReference<S>[] getAvailableReferences() {
+    protected ServiceReference<S>[] getAvailableCapabilities() {
         return tracker.getServiceReferences();
     }
 
     @Override
-    protected boolean matches(ServiceReference<S> reference, Filter filter) {
-        return filter == null || filter.match(reference);
+    protected boolean matches(ServiceReference<S> capability, Filter filter) {
+        return filter == null || filter.match(capability);
     }
 
     @Override

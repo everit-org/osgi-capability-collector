@@ -1,30 +1,30 @@
 /**
- * This file is part of Everit - OSGi Reference Tracker Tests.
+ * This file is part of Everit - OSGi Capability Collector Tests.
  *
- * Everit - OSGi Reference Tracker Tests is free software: you can redistribute it and/or modify
+ * Everit - OSGi Capability Collector Tests is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Everit - OSGi Reference Tracker Tests is distributed in the hope that it will be useful,
+ * Everit - OSGi Capability Collector Tests is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with Everit - OSGi Reference Tracker Tests.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Everit - OSGi Capability Collector Tests.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.everit.osgi.servicecollector.tests;
+package org.everit.osgi.capabilitycollector.tests;
 
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
-import org.everit.osgi.referencetracker.ReferenceActionHandler;
-import org.everit.osgi.referencetracker.ReferenceItem;
+import org.everit.osgi.capabilitycollector.ActionHandler;
+import org.everit.osgi.capabilitycollector.RequirementDefinition;
 import org.junit.Assert;
 
-public final class TestActionHandler<R> implements ReferenceActionHandler<R> {
+public final class TestActionHandler<R> implements ActionHandler<R> {
 
     public static class MethodCallData {
 
@@ -61,9 +61,9 @@ public final class TestActionHandler<R> implements ReferenceActionHandler<R> {
     private boolean satisfied = false;
 
     @Override
-    public void bind(ReferenceItem<R> referenceItem, R reference) {
+    public void bind(RequirementDefinition<R> referenceItem, R reference) {
         callHistory.add(new MethodCallData(METHOD_BIND, referenceItem, reference));
-        bindings.put(referenceItem.getReferenceItemId(), reference);
+        bindings.put(referenceItem.getRequirementId(), reference);
     }
 
     public void clearCallHistory() {
@@ -96,7 +96,7 @@ public final class TestActionHandler<R> implements ReferenceActionHandler<R> {
     }
 
     @Override
-    public void unbind(ReferenceItem<R> referenceItemId) {
+    public void unbind(RequirementDefinition<R> referenceItemId) {
         callHistory.add(new MethodCallData(METHOD_UNBIND, referenceItemId));
 
         bindings.remove(referenceItemId);

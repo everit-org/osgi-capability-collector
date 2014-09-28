@@ -1,29 +1,29 @@
 /**
- * This file is part of Everit - OSGi Reference Tracker.
+ * This file is part of Everit - OSGi Capability Collector.
  *
- * Everit - OSGi Reference Tracker is free software: you can redistribute it and/or modify
+ * Everit - OSGi Capability Collector is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Everit - OSGi Reference Tracker is distributed in the hope that it will be useful,
+ * Everit - OSGi Capability Collector is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with Everit - OSGi Reference Tracker.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Everit - OSGi Capability Collector.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.everit.osgi.referencetracker;
+package org.everit.osgi.capabilitycollector;
 
-public class DuplicateReferenceItemIdException extends RuntimeException {
+public class DuplicateRequirementIdException extends RuntimeException {
 
     /**
      * 
      */
     private static final long serialVersionUID = -3478550199163779814L;
 
-    public DuplicateReferenceItemIdException(String message) {
+    public DuplicateRequirementIdException(String message) {
         super(message);
     }
 
