@@ -22,7 +22,7 @@ import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
-public class ServiceCollector<S> extends AbstractCapabilityCollector<ServiceReference<S>> {
+public class ServiceReferenceCollector<S> extends AbstractCapabilityCollector<ServiceReference<S>> {
 
     private class ReferenceTrackerCustomizer implements ServiceTrackerCustomizer<S, ServiceReference<S>> {
 
@@ -47,7 +47,7 @@ public class ServiceCollector<S> extends AbstractCapabilityCollector<ServiceRefe
 
     private final ServiceTracker<S, ServiceReference<S>> tracker;
 
-    public ServiceCollector(BundleContext context, Class<S> referenceType,
+    public ServiceReferenceCollector(BundleContext context, Class<S> referenceType,
             RequirementDefinition<ServiceReference<S>>[] items,
             boolean survivor, ActionHandler<ServiceReference<S>> actionHandler, boolean trackAllServices) {
         super(context, items, survivor, actionHandler);

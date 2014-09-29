@@ -75,18 +75,26 @@ public class BundleCapabilityCollector extends AbstractCapabilityCollector<Bundl
 
     }
 
-    private final BundleTracker<Bundle> tracker;
+    private final Set<BundleCapability> availableCapabilities = new HashSet<BundleCapability>();
 
     private final String namespace;
 
-    private final Set<BundleCapability> availableCapabilities = new HashSet<BundleCapability>();
-
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
+    private final BundleTracker<Bundle> tracker;
+
     public BundleCapabilityCollector(BundleContext context, String namespace,
-            RequirementDefinition<BundleCapability>[] items, boolean survivor,
+            RequirementDefinition<BundleCapability>[] requirements, boolean survivor,
             ActionHandler<BundleCapability> actionHandler, int stateMask) {
-        super(context, items, survivor, actionHandler);
+        super(context, requirements, survivor, actionHandler);
+
+        if (((~(Bundle.RESOLVED | Bundle.STARTING | Bundle.STOPPING | Bundle.ACTIVE)) & stateMask) > 0) {
+            // TODO Custom exception type
+            throw new RuntimeException(
+                    "Only RESOLVED, STARTING, ACTIVE and STOPPING states are allowed in the bundle stateMask: "
+                            + stateMask);
+        }
+
         this.namespace = namespace;
         this.tracker = new BundleTracker<Bundle>(context, stateMask, new TrackerCustomizer());
     }
