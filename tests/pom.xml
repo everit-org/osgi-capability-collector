@@ -51,6 +51,7 @@
             <Import-Package>*</Import-Package>
             <Export-Package />
             <EOSGi-TestNum>16</EOSGi-TestNum>
+            <Provide-Capability>testNamespace;zero:Long=0,testNamespace;one="1"</Provide-Capability>
           </instructions>
         </configuration>
       </plugin>

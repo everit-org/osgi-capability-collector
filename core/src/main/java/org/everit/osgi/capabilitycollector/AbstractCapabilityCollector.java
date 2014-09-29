@@ -120,9 +120,9 @@ public abstract class AbstractCapabilityCollector<C> {
         writeLock.lock();
 
         if (survivor) {
-            Collection<RequirementDefinition<C>> items = satisfiedRequirementsByCapabilities.get(capability);
-            if (items != null) {
-                for (Iterator<RequirementDefinition<C>> iterator = items.iterator(); iterator.hasNext();) {
+            Collection<RequirementDefinition<C>> requirements = satisfiedRequirementsByCapabilities.get(capability);
+            if (requirements != null) {
+                for (Iterator<RequirementDefinition<C>> iterator = requirements.iterator(); iterator.hasNext();) {
                     RequirementDefinition<C> requirement = iterator.next();
                     Filter filter = requirement.getFilter();
                     if (!matches(capability, filter)) {
