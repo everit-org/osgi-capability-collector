@@ -26,6 +26,7 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.everit.osgi.capabilitycollector.BundleCapabilityCollector;
 import org.everit.osgi.capabilitycollector.RequirementDefinition;
+import org.everit.osgi.capabilitycollector.tests.TestActionHandler.MethodCallData;
 import org.everit.osgi.dev.testrunner.TestDuringDevelopment;
 import org.junit.Assert;
 import org.junit.Test;
@@ -72,22 +73,55 @@ public class BundleCapabilityCollectorTest {
         oneAttributes.put("zero", 0);
 
         @SuppressWarnings("unchecked")
-        RequirementDefinition<BundleCapability>[] requirements = new RequirementDefinition[] {
+        RequirementDefinition<BundleCapability>[] unsatisfiedRequirements = new RequirementDefinition[] {
                 new RequirementDefinition<BundleCapability>("zero", createFilter("(zero=0)"), zeroAttributes),
-                new RequirementDefinition<BundleCapability>("one", createFilter("(one=1)"), oneAttributes) };
+                new RequirementDefinition<BundleCapability>("two", createFilter("(two=2)"), oneAttributes) };
 
         TestActionHandler<BundleCapability> actionHandler = new TestActionHandler<BundleCapability>();
 
         BundleCapabilityCollector collector = new BundleCapabilityCollector(context, "testNamespace",
-                requirements, false, actionHandler, Bundle.ACTIVE);
+                unsatisfiedRequirements, false, actionHandler, Bundle.ACTIVE);
 
         collector.open();
+
+        @SuppressWarnings("unchecked")
+        RequirementDefinition<BundleCapability>[] unsatisfiedRequirements2 = new RequirementDefinition[] {
+                new RequirementDefinition<BundleCapability>("two", createFilter("(two=2)"), oneAttributes) };
+
+        collector.updateItems(unsatisfiedRequirements2);
+
+        @SuppressWarnings("unchecked")
+        RequirementDefinition<BundleCapability>[] requirements = new RequirementDefinition[] {
+                new RequirementDefinition<BundleCapability>("zero", createFilter("(zero=0)"), zeroAttributes),
+                new RequirementDefinition<BundleCapability>("one", createFilter("(one=1)"), oneAttributes) };
+
+        collector.updateItems(requirements);
 
         Assert.assertTrue(collector.isSatisfied());
         BundleCapability zeroBundleCapability = actionHandler.getBinding("zero");
         Assert.assertNotNull(zeroBundleCapability);
         Object zeroAttributeValue = zeroBundleCapability.getAttributes().get("zero");
         Assert.assertEquals(Long.valueOf(0), zeroAttributeValue);
+
+        @SuppressWarnings("unchecked")
+        RequirementDefinition<BundleCapability>[] newRequirements = new RequirementDefinition[] {
+                new RequirementDefinition<BundleCapability>("one", createFilter("(one=1)"), oneAttributes) };
+
+        actionHandler.clearCallHistory();
+        collector.updateItems(newRequirements);
+
+        MethodCallData methodCall = actionHandler.pollMethodCallHistory();
+        Assert.assertEquals("unsatisfied", methodCall.getMethodName());
+        methodCall = actionHandler.pollMethodCallHistory();
+        Assert.assertEquals("unbind", methodCall.getMethodName());
+
+        @SuppressWarnings("unchecked")
+        RequirementDefinition<BundleCapability> requirement = (RequirementDefinition<BundleCapability>) methodCall
+                .getParams()[0];
+        Assert.assertEquals("zero", requirement.getRequirementId());
+
+        methodCall = actionHandler.pollMethodCallHistory();
+        Assert.assertEquals("satisfied", methodCall.getMethodName());
 
         collector.close();
     }

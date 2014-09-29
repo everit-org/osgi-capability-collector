@@ -41,9 +41,9 @@ public abstract class AbstractCapabilityCollector<C> {
     // TODO handle RuntimeException for every actionHandler call
     private final ActionHandler<C> actionHandler;
 
-    private final ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock(false);
-
     private final AtomicBoolean opened = new AtomicBoolean(false);
+
+    private final ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock(false);
 
     private final Map<C, Collection<RequirementDefinition<C>>> satisfiedRequirementsByCapabilities =
             new HashMap<C, Collection<RequirementDefinition<C>>>();
@@ -210,35 +210,6 @@ public abstract class AbstractCapabilityCollector<C> {
 
     protected abstract void openTracker();
 
-    private boolean removeDeletedRequirementsFromSatisfied(Set<RequirementDefinition<C>> newRequirementSet,
-            boolean satisfied, Set<RequirementDefinition<C>> existedRequirements) {
-        Iterator<Entry<C, Collection<RequirementDefinition<C>>>> satisfiedEntryIterator =
-                satisfiedRequirementsByCapabilities.entrySet().iterator();
-
-        while (satisfiedEntryIterator.hasNext()) {
-            Entry<C, Collection<RequirementDefinition<C>>> satisfiedEntry = satisfiedEntryIterator.next();
-            Collection<RequirementDefinition<C>> satisfiedRequirementCollection = satisfiedEntry.getValue();
-            Iterator<RequirementDefinition<C>> satisfiedRequirementIterator = satisfiedRequirementCollection.iterator();
-            while (satisfiedRequirementIterator.hasNext()) {
-                RequirementDefinition<C> requirement = satisfiedRequirementIterator.next();
-                if (!newRequirementSet.contains(requirement)) {
-                    satisfiedRequirementIterator.remove();
-                    if (satisfied && !survivor) {
-                        actionHandler.unsatisfied();
-                        satisfied = false;
-                    }
-                    actionHandler.unbind(requirement);
-                } else {
-                    existedRequirements.add(requirement);
-                }
-            }
-            if (satisfiedRequirementCollection.isEmpty()) {
-                satisfiedEntryIterator.remove();
-            }
-        }
-        return satisfied;
-    }
-
     protected void removedCapability(C capability) {
         WriteLock writeLock = readWriteLock.writeLock();
         writeLock.lock();
@@ -298,8 +269,37 @@ public abstract class AbstractCapabilityCollector<C> {
         writeLock.unlock();
     }
 
+    private boolean removeDeletedRequirementsFromSatisfied(Set<RequirementDefinition<C>> newRequirementSet,
+            boolean satisfied, Set<RequirementDefinition<C>> existedNewRequirements) {
+        Iterator<Entry<C, Collection<RequirementDefinition<C>>>> satisfiedEntryIterator =
+                satisfiedRequirementsByCapabilities.entrySet().iterator();
+
+        while (satisfiedEntryIterator.hasNext()) {
+            Entry<C, Collection<RequirementDefinition<C>>> satisfiedEntry = satisfiedEntryIterator.next();
+            Collection<RequirementDefinition<C>> satisfiedRequirementCollection = satisfiedEntry.getValue();
+            Iterator<RequirementDefinition<C>> satisfiedRequirementIterator = satisfiedRequirementCollection.iterator();
+            while (satisfiedRequirementIterator.hasNext()) {
+                RequirementDefinition<C> requirement = satisfiedRequirementIterator.next();
+                if (!newRequirementSet.contains(requirement)) {
+                    satisfiedRequirementIterator.remove();
+                    if (satisfied && !survivor) {
+                        actionHandler.unsatisfied();
+                        satisfied = false;
+                    }
+                    actionHandler.unbind(requirement);
+                } else {
+                    existedNewRequirements.add(requirement);
+                }
+            }
+            if (satisfiedRequirementCollection.isEmpty()) {
+                satisfiedEntryIterator.remove();
+            }
+        }
+        return satisfied;
+    }
+
     private void removeNonExistentRequirementsFromUnsatisfiedCollection(Set<RequirementDefinition<C>> requirementList,
-            Set<RequirementDefinition<C>> existedRequirements) {
+            Set<RequirementDefinition<C>> existedNewRequirements) {
         Iterator<RequirementDefinition<C>> iterator = unsatisfiedRequirements.iterator();
 
         while (iterator.hasNext()) {
@@ -307,7 +307,7 @@ public abstract class AbstractCapabilityCollector<C> {
             if (!requirementList.contains(requirement)) {
                 iterator.remove();
             } else {
-                existedRequirements.add(requirement);
+                existedNewRequirements.add(requirement);
             }
         }
     }
@@ -376,21 +376,16 @@ public abstract class AbstractCapabilityCollector<C> {
 
         Set<RequirementDefinition<C>> newRequirements = new HashSet<RequirementDefinition<C>>(
                 Arrays.asList(requirements));
-        Set<RequirementDefinition<C>> oldRequirements = new HashSet<RequirementDefinition<C>>();
+        Set<RequirementDefinition<C>> existedNewRequirements = new HashSet<RequirementDefinition<C>>();
 
         boolean satisfied = isSatisfied();
 
-        removeNonExistentRequirementsFromUnsatisfiedCollection(newRequirements, oldRequirements);
+        removeNonExistentRequirementsFromUnsatisfiedCollection(newRequirements, existedNewRequirements);
 
-        satisfied = removeDeletedRequirementsFromSatisfied(newRequirements, satisfied, oldRequirements);
-
-        if (!survivor && satisfied && !oldRequirements.equals(newRequirements)) {
-            actionHandler.unsatisfied();
-            satisfied = false;
-        }
+        satisfied = removeDeletedRequirementsFromSatisfied(newRequirements, satisfied, existedNewRequirements);
 
         for (RequirementDefinition<C> newRequirement : newRequirements) {
-            if (!oldRequirements.contains(newRequirement)) {
+            if (!existedNewRequirements.contains(newRequirement)) {
                 C matchingCapability = searchMatchingCapabilityForRequirement(newRequirement);
                 if (matchingCapability == null) {
                     if (satisfied) {
