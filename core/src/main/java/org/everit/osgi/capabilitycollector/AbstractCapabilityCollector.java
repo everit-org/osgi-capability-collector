@@ -75,6 +75,11 @@ public abstract class AbstractCapabilityCollector<C> {
         writeLock.unlock();
     }
 
+    private boolean addNewRequirementsDuringUpdate(Set<RequirementDefinition<C>> newRequirements, boolean satisfied) {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
     private void addRequirementToSatisfiedMap(RequirementDefinition<C> requirement, C capability) {
         Collection<RequirementDefinition<C>> requirements = satisfiedRequirementsByCapabilities.get(capability);
         if (requirements == null) {
@@ -270,7 +275,7 @@ public abstract class AbstractCapabilityCollector<C> {
     }
 
     private boolean removeDeletedRequirementsFromSatisfied(Set<RequirementDefinition<C>> newRequirementSet,
-            boolean satisfied, Set<RequirementDefinition<C>> existedNewRequirements) {
+            boolean satisfied) {
         Iterator<Entry<C, Collection<RequirementDefinition<C>>>> satisfiedEntryIterator =
                 satisfiedRequirementsByCapabilities.entrySet().iterator();
 
@@ -287,8 +292,6 @@ public abstract class AbstractCapabilityCollector<C> {
                         satisfied = false;
                     }
                     actionHandler.unbind(requirement);
-                } else {
-                    existedNewRequirements.add(requirement);
                 }
             }
             if (satisfiedRequirementCollection.isEmpty()) {
@@ -298,16 +301,13 @@ public abstract class AbstractCapabilityCollector<C> {
         return satisfied;
     }
 
-    private void removeNonExistentRequirementsFromUnsatisfiedCollection(Set<RequirementDefinition<C>> requirementList,
-            Set<RequirementDefinition<C>> existedNewRequirements) {
+    private void removeNonExistentRequirementsFromUnsatisfiedCollection(Set<RequirementDefinition<C>> requirementList) {
         Iterator<RequirementDefinition<C>> iterator = unsatisfiedRequirements.iterator();
 
         while (iterator.hasNext()) {
             RequirementDefinition<C> requirement = iterator.next();
             if (!requirementList.contains(requirement)) {
                 iterator.remove();
-            } else {
-                existedNewRequirements.add(requirement);
             }
         }
     }
@@ -351,6 +351,35 @@ public abstract class AbstractCapabilityCollector<C> {
 
     }
 
+    private boolean updateExistingRequirementsAndRemoveThemFromNewSet(Set<RequirementDefinition<C>> newRequirements,
+            boolean satisfied) {
+        // TODO
+        Iterator<Entry<C, Collection<RequirementDefinition<C>>>> satisfiedEntryIterator =
+                satisfiedRequirementsByCapabilities.entrySet().iterator();
+
+        while (satisfiedEntryIterator.hasNext()) {
+            Entry<C, Collection<RequirementDefinition<C>>> satisfiedEntry = satisfiedEntryIterator.next();
+            Collection<RequirementDefinition<C>> satisfiedRequirementCollection = satisfiedEntry.getValue();
+            Iterator<RequirementDefinition<C>> satisfiedRequirementIterator = satisfiedRequirementCollection.iterator();
+            while (satisfiedRequirementIterator.hasNext()) {
+                RequirementDefinition<C> requirement = satisfiedRequirementIterator.next();
+
+                if (!newRequirementSet.contains(requirement)) {
+                    satisfiedRequirementIterator.remove();
+                    if (satisfied && !survivor) {
+                        actionHandler.unsatisfied();
+                        satisfied = false;
+                    }
+                    actionHandler.unbind(requirement);
+                }
+            }
+            if (satisfiedRequirementCollection.isEmpty()) {
+                satisfiedEntryIterator.remove();
+            }
+        }
+        return satisfied;
+    }
+
     /**
      * Updates the requirements of this collector. Those requirements that were already satisfied remain unchanged.
      *
@@ -376,29 +405,16 @@ public abstract class AbstractCapabilityCollector<C> {
 
         Set<RequirementDefinition<C>> newRequirements = new HashSet<RequirementDefinition<C>>(
                 Arrays.asList(requirements));
-        Set<RequirementDefinition<C>> existedNewRequirements = new HashSet<RequirementDefinition<C>>();
 
         boolean satisfied = isSatisfied();
 
-        removeNonExistentRequirementsFromUnsatisfiedCollection(newRequirements, existedNewRequirements);
+        removeNonExistentRequirementsFromUnsatisfiedCollection(newRequirements);
 
-        satisfied = removeDeletedRequirementsFromSatisfied(newRequirements, satisfied, existedNewRequirements);
+        satisfied = removeDeletedRequirementsFromSatisfied(newRequirements, satisfied);
 
-        for (RequirementDefinition<C> newRequirement : newRequirements) {
-            if (!existedNewRequirements.contains(newRequirement)) {
-                C matchingCapability = searchMatchingCapabilityForRequirement(newRequirement);
-                if (matchingCapability == null) {
-                    if (satisfied) {
-                        actionHandler.unsatisfied();
-                        satisfied = false;
-                    }
-                    unsatisfiedRequirements.add(newRequirement);
-                } else {
-                    addRequirementToSatisfiedMap(newRequirement, matchingCapability);
-                    callBindForRequirement(newRequirement, matchingCapability);
-                }
-            }
-        }
+        satisfied = updateExistingRequirementsAndRemoveThemFromNewSet(newRequirements, satisfied);
+
+        satisfied = addNewRequirementsDuringUpdate(newRequirements, satisfied);
 
         if (!satisfied && isSatisfied()) {
             actionHandler.satisfied();

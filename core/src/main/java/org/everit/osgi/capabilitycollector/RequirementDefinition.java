@@ -57,28 +57,12 @@ public class RequirementDefinition<C> {
         if (getClass() != obj.getClass()) {
             return false;
         }
-
-        @SuppressWarnings("unchecked")
-        RequirementDefinition<C> other = (RequirementDefinition<C>) obj;
+        RequirementDefinition<?> other = (RequirementDefinition<?>) obj;
         if (requirementId == null) {
             if (other.requirementId != null) {
                 return false;
             }
         } else if (!requirementId.equals(other.requirementId)) {
-            return false;
-        }
-        if (filter == null) {
-            if (other.filter != null) {
-                return false;
-            }
-        } else if (!filter.equals(other.filter)) {
-            return false;
-        }
-        if (attributes == null) {
-            if (other.attributes != null) {
-                return false;
-            }
-        } else if (!attributes.equals(other.attributes)) {
             return false;
         }
         return true;
@@ -101,8 +85,6 @@ public class RequirementDefinition<C> {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((requirementId == null) ? 0 : requirementId.hashCode());
-        result = prime * result + ((filter == null) ? 0 : filter.hashCode());
-        result = prime * result + ((attributes == null) ? 0 : attributes.hashCode());
         return result;
     }
 

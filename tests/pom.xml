@@ -50,7 +50,7 @@
             <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
             <Import-Package>*</Import-Package>
             <Export-Package />
-            <EOSGi-TestNum>18</EOSGi-TestNum>
+            <EOSGi-TestNum>19</EOSGi-TestNum>
             <Provide-Capability>testNamespace;zero:Long=0,testNamespace;one="1"</Provide-Capability>
           </instructions>
         </configuration>

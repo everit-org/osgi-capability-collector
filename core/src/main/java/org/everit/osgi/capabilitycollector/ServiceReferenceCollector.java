@@ -56,7 +56,7 @@ public class ServiceReferenceCollector<S> extends AbstractCapabilityCollector<Se
         this.trackAllServices = trackAllServices;
         if (referenceType == null) {
             try {
-                tracker = new ServiceTracker<S, ServiceReference<S>>(context, context.createFilter("()"),
+                tracker = new ServiceTracker<S, ServiceReference<S>>(context, context.createFilter("(service.id=*)"),
                         new ReferenceTrackerCustomizer());
             } catch (InvalidSyntaxException e) {
                 throw new RuntimeException(e);

@@ -46,7 +46,6 @@ import org.osgi.framework.ServiceRegistration;
         @Property(name = "eosgi.testEngine", value = "junit4")
 })
 @Service(value = ServiceReferenceCollectorTestComponent.class)
-@TestDuringDevelopment
 public class ServiceReferenceCollectorTestComponent {
 
     private static final Map<String, Object> EMPTY_ATTRIBUTE_MAP = Collections.emptyMap();
@@ -215,7 +214,6 @@ public class ServiceReferenceCollectorTestComponent {
     }
 
     @Test
-    @TestDuringDevelopment
     public void testNullFilter() {
 
         @SuppressWarnings("unchecked")
@@ -263,6 +261,7 @@ public class ServiceReferenceCollectorTestComponent {
                 new TestActionHandler<ServiceReference<Object>>(), false);
     }
 
+    @Test
     public void testNullReferenceType() {
         @SuppressWarnings("unchecked")
         RequirementDefinition<ServiceReference<Object>>[] items = new RequirementDefinition[] {
@@ -380,6 +379,12 @@ public class ServiceReferenceCollectorTestComponent {
         testUpdateItemsEmptyItemsChange(false);
     }
 
+    @Test
+    public void testUpdateItemsEmptyItemsChange() {
+        testUpdateItemsEmptyItemsChange(true);
+        testUpdateItemsEmptyItemsChange(false);
+    }
+
     private void testUpdateItemsEmptyItemsChange(boolean survivor) {
         TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
         ServiceReferenceCollector<Object> referenceTracker = new ServiceReferenceCollector<Object>(context,
@@ -428,12 +433,13 @@ public class ServiceReferenceCollectorTestComponent {
     }
 
     @Test
+    @TestDuringDevelopment
     public void testUpdateItemsReplaceItemToExisting() {
-        testUpdateItemsEmptyItemsChange(true);
-        testUpdateItemsEmptyItemsChange(false);
+        testUpdateItemsReplaceItemToExisting(false);
+        testUpdateItemsReplaceItemToExisting(true);
     }
 
-    public void testUpdateItemsReplaceItemToExisting(boolean survivor) {
+    private void testUpdateItemsReplaceItemToExisting(boolean survivor) {
         TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
 
         @SuppressWarnings("unchecked")
@@ -442,23 +448,23 @@ public class ServiceReferenceCollectorTestComponent {
                         new HashMap<String, Object>()) };
 
         ServiceRegistration<Object> testSR1 = context.registerService(Object.class,
-                new Object(), createServiceProps("key", "1", "key", "2"));
+                new Object(), createServiceProps("key", "1", "value", "1"));
 
-        ServiceReferenceCollector<Object> referenceTracker = new ServiceReferenceCollector<Object>(context,
+        ServiceReferenceCollector<Object> collector = new ServiceReferenceCollector<Object>(context,
                 Object.class, items1, survivor, actionHandler, false);
 
-        Assert.assertTrue(referenceTracker.isSatisfied());
+        collector.open();
 
-        referenceTracker.open();
+        Assert.assertTrue(collector.isSatisfied());
 
         actionHandler.clearCallHistory();
 
         @SuppressWarnings("unchecked")
         RequirementDefinition<ServiceReference<Object>>[] items2 = new RequirementDefinition[] {
-                new RequirementDefinition<ServiceReference<Object>>("1", createFilter("(key=2)"),
+                new RequirementDefinition<ServiceReference<Object>>("1", createFilter("(value=1)"),
                         new HashMap<String, Object>()) };
 
-        referenceTracker.updateItems(items2);
+        collector.updateItems(items2);
 
         if (survivor) {
             MethodCallData methodCall = actionHandler.pollMethodCallHistory();
@@ -479,7 +485,7 @@ public class ServiceReferenceCollectorTestComponent {
 
         testSR1.unregister();
 
-        referenceTracker.close();
+        collector.close();
     }
 
     @Test
