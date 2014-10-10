@@ -18,6 +18,7 @@ package org.everit.osgi.capabilitycollector;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Filter;
+import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
@@ -53,8 +54,17 @@ public class ServiceReferenceCollector<S> extends AbstractCapabilityCollector<Se
         super(context, items, survivor, actionHandler);
 
         this.trackAllServices = trackAllServices;
-        tracker = new ServiceTracker<S, ServiceReference<S>>(context, referenceType,
-                new ReferenceTrackerCustomizer());
+        if (referenceType == null) {
+            try {
+                tracker = new ServiceTracker<S, ServiceReference<S>>(context, context.createFilter("()"),
+                        new ReferenceTrackerCustomizer());
+            } catch (InvalidSyntaxException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            tracker = new ServiceTracker<S, ServiceReference<S>>(context, referenceType,
+                    new ReferenceTrackerCustomizer());
+        }
     }
 
     @Override

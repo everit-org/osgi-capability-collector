@@ -263,10 +263,29 @@ public class ServiceReferenceCollectorTestComponent {
                 new TestActionHandler<ServiceReference<Object>>(), false);
     }
 
-    @Test(expected = NullPointerException.class)
     public void testNullReferenceType() {
-        new ServiceReferenceCollector<Object>(context, null, EMPTY_ITEMS, false,
-                new TestActionHandler<ServiceReference<Object>>(), false);
+        @SuppressWarnings("unchecked")
+        RequirementDefinition<ServiceReference<Object>>[] items = new RequirementDefinition[] {
+                new RequirementDefinition<Object>("test0", createFilter("(key=0)"), EMPTY_ATTRIBUTE_MAP)
+        };
+
+        TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
+
+        ServiceReferenceCollector<Object> collector = new ServiceReferenceCollector<Object>(context, null, items,
+                false, actionHandler, false);
+
+        collector.open();
+
+        Assert.assertFalse(actionHandler.isSatisfied());
+
+        ServiceRegistration<Object> test0SR = context.registerService(Object.class,
+                new Object(), createServiceProps("key", "0", "value", "0"));
+
+        Assert.assertTrue(actionHandler.isSatisfied());
+
+        test0SR.unregister();
+
+        Assert.assertFalse(actionHandler.isSatisfied());
     }
 
     @Test
