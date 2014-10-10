@@ -85,7 +85,7 @@ public class BundleCapabilityCollector extends AbstractCapabilityCollector<Bundl
 
     public BundleCapabilityCollector(BundleContext context, String namespace,
             RequirementDefinition<BundleCapability>[] requirements, boolean survivor,
-            CapabilityCollectorActionHandler<BundleCapability> actionHandler, int stateMask) {
+            ActionHandler<BundleCapability> actionHandler, int stateMask) {
         super(context, requirements, survivor, actionHandler);
 
         if (((~(Bundle.RESOLVED | Bundle.STARTING | Bundle.STOPPING | Bundle.ACTIVE)) & stateMask) > 0) {

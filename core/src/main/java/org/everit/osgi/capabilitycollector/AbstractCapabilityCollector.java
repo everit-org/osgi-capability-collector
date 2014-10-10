@@ -39,7 +39,7 @@ import org.osgi.framework.Filter;
 public abstract class AbstractCapabilityCollector<C> {
 
     // TODO handle RuntimeException for every actionHandler call
-    private final CapabilityCollectorActionHandler<C> actionHandler;
+    private final ActionHandler<C> actionHandler;
 
     private final AtomicBoolean opened = new AtomicBoolean(false);
 
@@ -53,7 +53,7 @@ public abstract class AbstractCapabilityCollector<C> {
     private final Set<RequirementDefinition<C>> unsatisfiedRequirements = new HashSet<RequirementDefinition<C>>();
 
     public AbstractCapabilityCollector(BundleContext context, RequirementDefinition<C>[] items,
-            boolean survivor, CapabilityCollectorActionHandler<C> actionHandler) {
+            boolean survivor, ActionHandler<C> actionHandler) {
 
         Objects.requireNonNull(context, "Context must not be null");
         Objects.requireNonNull(actionHandler, "Action handler must not be null");
