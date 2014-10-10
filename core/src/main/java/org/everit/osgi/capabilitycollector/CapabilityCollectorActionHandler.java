@@ -16,7 +16,7 @@
  */
 package org.everit.osgi.capabilitycollector;
 
-public interface ActionHandler<C> {
+public interface CapabilityCollectorActionHandler<C> {
 
     void bind(RequirementDefinition<C> requirement, C capability);
 

@@ -49,7 +49,7 @@ public class ServiceReferenceCollector<S> extends AbstractCapabilityCollector<Se
 
     public ServiceReferenceCollector(BundleContext context, Class<S> referenceType,
             RequirementDefinition<ServiceReference<S>>[] items,
-            boolean survivor, ActionHandler<ServiceReference<S>> actionHandler, boolean trackAllServices) {
+            boolean survivor, CapabilityCollectorActionHandler<ServiceReference<S>> actionHandler, boolean trackAllServices) {
         super(context, items, survivor, actionHandler);
 
         this.trackAllServices = trackAllServices;

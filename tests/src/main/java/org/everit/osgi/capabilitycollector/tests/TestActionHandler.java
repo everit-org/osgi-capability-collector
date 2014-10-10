@@ -20,11 +20,11 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
-import org.everit.osgi.capabilitycollector.ActionHandler;
+import org.everit.osgi.capabilitycollector.CapabilityCollectorActionHandler;
 import org.everit.osgi.capabilitycollector.RequirementDefinition;
 import org.junit.Assert;
 
-public final class TestActionHandler<R> implements ActionHandler<R> {
+public final class TestActionHandler<R> implements CapabilityCollectorActionHandler<R> {
 
     public static class MethodCallData {
 
