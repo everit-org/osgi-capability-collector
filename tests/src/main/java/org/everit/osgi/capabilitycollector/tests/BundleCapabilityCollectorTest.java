@@ -92,9 +92,9 @@ public class BundleCapabilityCollectorTest {
                 new RequirementDefinition<BundleCapability>("zero", createFilter("(zero=0)"), zeroAttributes),
                 new RequirementDefinition<BundleCapability>("one", createFilter("(one=1)"), oneAttributes) };
 
-        collector.updateRequirements(requirements);
-
         capabilityConsumer.clearHistory();
+
+        collector.updateRequirements(requirements);
 
         Assert.assertTrue(collector.isSatisfied());
         BundleCapability zeroBundleCapability = capabilityConsumer.pollCallParameters().getSuitings()[0]

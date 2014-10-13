@@ -60,7 +60,10 @@ public abstract class AbstractCapabilityCollector<C> {
         WriteLock writeLock = readWriteLock.writeLock();
         writeLock.lock();
 
-        tryCapabilityOnUnsatisfiedRequirements(capability);
+        boolean changed = tryCapabilityOnUnsatisfiedRequirements(capability);
+        if (changed) {
+            capabilityConsumer.accept(suitings, satisfied);
+        }
 
         writeLock.unlock();
     }
@@ -77,7 +80,8 @@ public abstract class AbstractCapabilityCollector<C> {
 
             closeTracker();
             if (noItems()) {
-                capabilityConsumer.accept(suitings, false);
+                satisfied = false;
+                capabilityConsumer.accept(suitings, satisfied);
             }
         } finally {
             writeLock.unlock();
@@ -107,16 +111,23 @@ public abstract class AbstractCapabilityCollector<C> {
         WriteLock writeLock = readWriteLock.writeLock();
         writeLock.lock();
 
+        boolean changed = false;
         for (int i = 0; i < suitings.length; i++) {
             Suiting<C> suiting = suitings[i];
             C suitedCapability = suiting.getCapability();
             if (capability.equals(suitedCapability) && !matches(capability, suiting.getRequirement().getFilter())) {
-                suitings[i] = new Suiting<C>(suitings[i].getRequirement(), null);
+                changed = true;
+                C newCapability = searchMatchingCapabilityForRequirement(suiting.getRequirement());
+                suitings[i] = new Suiting<C>(suitings[i].getRequirement(), newCapability);
                 satisfied = false;
             }
         }
 
-        tryCapabilityOnUnsatisfiedRequirements(capability);
+        changed = changed || tryCapabilityOnUnsatisfiedRequirements(capability);
+
+        if (changed) {
+            capabilityConsumer.accept(suitings, satisfied);
+        }
 
         writeLock.unlock();
     }
@@ -137,16 +148,15 @@ public abstract class AbstractCapabilityCollector<C> {
         writeLock.lock();
 
         try {
-            if (!opened) {
+            if (opened) {
                 throw new IllegalStateException("Open was called on a CapabilityCollector that was already opened.");
             }
             opened = true;
 
             if (noItems()) {
-                capabilityConsumer.accept(suitings, true);
-            } else {
-                capabilityConsumer.accept(suitings, false);
+                this.satisfied = true;
             }
+            capabilityConsumer.accept(suitings, satisfied);
             openTracker();
         } finally {
             writeLock.unlock();
@@ -206,9 +216,9 @@ public abstract class AbstractCapabilityCollector<C> {
         return matchingCapability;
     }
 
-    private void tryCapabilityOnUnsatisfiedRequirements(C capability) {
+    private boolean tryCapabilityOnUnsatisfiedRequirements(C capability) {
         if (satisfied) {
-            return;
+            return false;
         }
 
         boolean changed = false;
@@ -232,9 +242,7 @@ public abstract class AbstractCapabilityCollector<C> {
             this.satisfied = true;
         }
 
-        if (changed) {
-            capabilityConsumer.accept(suitings.clone(), this.satisfied);
-        }
+        return changed;
     }
 
     /**

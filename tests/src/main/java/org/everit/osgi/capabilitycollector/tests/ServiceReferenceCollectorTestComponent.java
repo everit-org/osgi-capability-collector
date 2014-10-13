@@ -46,6 +46,7 @@ import org.osgi.framework.ServiceRegistration;
         @Property(name = "eosgi.testEngine", value = "junit4")
 })
 @Service(value = ServiceReferenceCollectorTestComponent.class)
+@TestDuringDevelopment
 public class ServiceReferenceCollectorTestComponent {
 
     private static final Map<String, Object> EMPTY_ATTRIBUTE_MAP = Collections.emptyMap();
@@ -89,7 +90,8 @@ public class ServiceReferenceCollectorTestComponent {
     }
 
     @Test
-    public void testNonSurvivor() {
+    @TestDuringDevelopment
+    public void testNormalBehavior() {
         @SuppressWarnings("unchecked")
         RequirementDefinition<ServiceReference<Object>>[] items = new RequirementDefinition[] {
                 new RequirementDefinition<ServiceReference<Object>>(
@@ -133,14 +135,14 @@ public class ServiceReferenceCollectorTestComponent {
 
         test0sSR.unregister();
 
-        CallParameters<ServiceReference<Object>> methodCall = capabilityConsumer.pollCallParameters();
+        callParameters = capabilityConsumer.pollCallParameters();
 
-        Assert.assertFalse(methodCall.isSatisfied());
+        Assert.assertTrue(callParameters.isSatisfied());
 
         suitings = callParameters.getSuitings();
         Assert.assertEquals("0", suitings[0].getCapability().getProperty("value"));
         Assert.assertEquals("0", suitings[1].getCapability().getProperty("value"));
-        Assert.assertNull(suitings[2].getCapability());
+        Assert.assertEquals("1", suitings[2].getCapability().getProperty("key"));
 
         test0SR.setProperties(createServiceProps("key", "0", "value", "0", "x", "y"));
 
@@ -157,27 +159,15 @@ public class ServiceReferenceCollectorTestComponent {
         ServiceRegistration<Object> test0sSR2 = context.registerService(Object.class,
                 new Object(), createServiceProps("key", "0", "value", "0"));
 
-        capabilityConsumer.clearCallHistory();
+        capabilityConsumer.clearHistory();
 
         test0SR.setProperties(createServiceProps("key", "5", "value", "0", "x", "y"));
 
-        methodCall = capabilityConsumer.pollMethodCallHistory();
-        Assert.assertEquals(TestActionHandler.METHOD_UNSATISFIED, methodCall.getMethodName());
+        callParameters = capabilityConsumer.pollCallParameters();
 
-        methodCall = capabilityConsumer.pollMethodCallHistory();
-        Assert.assertEquals(TestActionHandler.METHOD_UNBIND, methodCall.getMethodName());
+        Assert.assertFalse(callParameters.isSatisfied());
 
-        methodCall = capabilityConsumer.pollMethodCallHistory();
-        Assert.assertEquals(TestActionHandler.METHOD_UNBIND, methodCall.getMethodName());
-
-        methodCall = capabilityConsumer.pollMethodCallHistory();
-        Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
-
-        methodCall = capabilityConsumer.pollMethodCallHistory();
-        Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
-
-        methodCall = capabilityConsumer.pollMethodCallHistory();
-        Assert.assertEquals(TestActionHandler.METHOD_SATISFIED, methodCall.getMethodName());
+        // TODO check array
 
         test0sSR2.unregister();
 
@@ -192,8 +182,8 @@ public class ServiceReferenceCollectorTestComponent {
     }
 
     @Test(expected = NullPointerException.class)
-    public void testNullActionHandler() {
-        new ServiceReferenceCollector<Object>(context, Object.class, EMPTY_ITEMS, false, null, false);
+    public void testNullCapabilityConsumer() {
+        new ServiceReferenceCollector<Object>(context, Object.class, EMPTY_ITEMS, null, false);
     }
 
     @Test(expected = NullPointerException.class)
@@ -203,8 +193,8 @@ public class ServiceReferenceCollectorTestComponent {
 
     @Test(expected = NullPointerException.class)
     public void testNullContext() {
-        new ServiceReferenceCollector<Object>(null, Object.class, EMPTY_ITEMS, false,
-                new TestActionHandler<ServiceReference<Object>>(), false);
+        new ServiceReferenceCollector<Object>(null, Object.class, EMPTY_ITEMS,
+                new TestCapabilityConsumer<ServiceReference<Object>>(), false);
     }
 
     @Test
@@ -214,12 +204,12 @@ public class ServiceReferenceCollectorTestComponent {
         RequirementDefinition<ServiceReference<Object>>[] items = new RequirementDefinition[] {
                 new RequirementDefinition<ServiceReference<Object>>("test", null, EMPTY_ATTRIBUTE_MAP) };
 
-        TestActionHandler<ServiceReference<Object>> actionHandler =
-                new TestActionHandler<ServiceReference<Object>>();
+        TestCapabilityConsumer<ServiceReference<Object>> actionHandler =
+                new TestCapabilityConsumer<ServiceReference<Object>>();
 
         ServiceReferenceCollector<Object> referenceTracker = new ServiceReferenceCollector<Object>(context,
                 Object.class,
-                items, false, actionHandler, false);
+                items, actionHandler, false);
 
         referenceTracker.open();
         Assert.assertFalse(actionHandler.isSatisfied());
@@ -240,8 +230,8 @@ public class ServiceReferenceCollectorTestComponent {
         @SuppressWarnings("unchecked")
         RequirementDefinition<ServiceReference<Object>>[] items = new RequirementDefinition[] { null };
 
-        new ServiceReferenceCollector<Object>(context, Object.class, items, false,
-                new TestActionHandler<ServiceReference<Object>>(), false);
+        new ServiceReferenceCollector<Object>(context, Object.class, items,
+                new TestCapabilityConsumer<ServiceReference<Object>>(), false);
     }
 
     @Test(expected = NullPointerException.class)
@@ -251,8 +241,8 @@ public class ServiceReferenceCollectorTestComponent {
 
     @Test(expected = NullPointerException.class)
     public void testNullItems() {
-        new ServiceReferenceCollector<Object>(context, Object.class, null, false,
-                new TestActionHandler<ServiceReference<Object>>(), false);
+        new ServiceReferenceCollector<Object>(context, Object.class, null,
+                new TestCapabilityConsumer<ServiceReference<Object>>(), false);
     }
 
     @Test
@@ -262,10 +252,11 @@ public class ServiceReferenceCollectorTestComponent {
                 new RequirementDefinition<Object>("test0", createFilter("(key=0)"), EMPTY_ATTRIBUTE_MAP)
         };
 
-        TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
+        TestCapabilityConsumer<ServiceReference<Object>> actionHandler =
+                new TestCapabilityConsumer<ServiceReference<Object>>();
 
         ServiceReferenceCollector<Object> collector = new ServiceReferenceCollector<Object>(context, null, items,
-                false, actionHandler, false);
+                actionHandler, false);
 
         collector.open();
 
@@ -276,113 +267,20 @@ public class ServiceReferenceCollectorTestComponent {
 
         Assert.assertTrue(actionHandler.isSatisfied());
 
-        test0SR.unregister();
-
-        Assert.assertFalse(actionHandler.isSatisfied());
-    }
-
-    @Test
-    public void testSurvivor() {
-        @SuppressWarnings("unchecked")
-        RequirementDefinition<ServiceReference<Object>>[] items = new RequirementDefinition[] {
-                new RequirementDefinition<Object>("test0", createFilter("(key=0)"), EMPTY_ATTRIBUTE_MAP),
-                new RequirementDefinition<Object>("test0_s", createFilter("(&(key=0)(value=0))"), EMPTY_ATTRIBUTE_MAP),
-                new RequirementDefinition<Object>("test1", createFilter("(key=1)"), EMPTY_ATTRIBUTE_MAP) };
-
-        TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
-
-        ServiceReferenceCollector<Object> referenceTracker = new ServiceReferenceCollector<Object>(context,
-                Object.class,
-                items, true, actionHandler, false);
-
-        referenceTracker.open();
-
-        Assert.assertFalse(actionHandler.isSatisfied());
-
-        ServiceRegistration<Object> test0sSR = context.registerService(Object.class,
-                new Object(), createServiceProps("key", "0", "value", "0"));
-
-        Assert.assertFalse(actionHandler.isSatisfied());
-        Assert.assertEquals("0", actionHandler.getBinding("test0").getProperty("value"));
-        Assert.assertEquals("0", actionHandler.getBinding("test0_s").getProperty("value"));
-        Assert.assertFalse(actionHandler.containsBinding("test1"));
-
-        ServiceRegistration<Object> test1SR = context.registerService(Object.class,
-                new Object(), createServiceProps("key", "1"));
-
-        Assert.assertTrue(actionHandler.isSatisfied());
-
-        ServiceRegistration<Object> test0SR = context.registerService(Object.class,
-                new Object(), createServiceProps("key", "0", "value", "0"));
-
-        actionHandler.clearCallHistory();
-
-        test0sSR.unregister();
-
-        MethodCallData methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
-
-        methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
-
-        methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertNull(methodCall);
-
-        test0SR.setProperties(createServiceProps("key", "0", "value", "0", "x", "y"));
-
-        Assert.assertTrue(actionHandler.isSatisfied());
-
-        test0SR.setProperties(createServiceProps("key", "5", "value", "0", "x", "y"));
-
-        Assert.assertFalse(actionHandler.isSatisfied());
-
-        test0SR.setProperties(createServiceProps("key", "0", "value", "0", "x", "y"));
-
-        Assert.assertTrue(actionHandler.isSatisfied());
-
-        ServiceRegistration<Object> test0sSR2 = context.registerService(Object.class,
-                new Object(), createServiceProps("key", "0", "value", "0"));
-
-        actionHandler.clearCallHistory();
-
-        test0SR.setProperties(createServiceProps("key", "5", "value", "0", "x", "y"));
-
-        methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
-
-        methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
-
-        methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertNull(methodCall);
-
-        test0sSR2.unregister();
-
-        test1SR.unregister();
+        // TODO check exact matching
 
         test0SR.unregister();
 
         Assert.assertFalse(actionHandler.isSatisfied());
-
-        referenceTracker.close();
     }
 
     @Test
-    public void testUpdateItemsEmptyChange() {
-        testUpdateItemsEmptyItemsChange(true);
-        testUpdateItemsEmptyItemsChange(false);
-    }
-
-    @Test
+    @TestDuringDevelopment
     public void testUpdateItemsEmptyItemsChange() {
-        testUpdateItemsEmptyItemsChange(true);
-        testUpdateItemsEmptyItemsChange(false);
-    }
-
-    private void testUpdateItemsEmptyItemsChange(boolean survivor) {
-        TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
+        TestCapabilityConsumer<ServiceReference<Object>> actionHandler =
+                new TestCapabilityConsumer<ServiceReference<Object>>();
         ServiceReferenceCollector<Object> referenceTracker = new ServiceReferenceCollector<Object>(context,
-                Object.class, EMPTY_ITEMS, true, actionHandler, false);
+                Object.class, EMPTY_ITEMS, actionHandler, false);
 
         referenceTracker.open();
 
@@ -420,21 +318,16 @@ public class ServiceReferenceCollectorTestComponent {
     @Test(expected = NullPointerException.class)
     public void testUpdateItemsNullArray() {
         ServiceReferenceCollector<Object> referenceTracker = new ServiceReferenceCollector<Object>(context,
-                Object.class, EMPTY_ITEMS, false, new TestActionHandler<ServiceReference<Object>>(), false);
+                Object.class, EMPTY_ITEMS, new TestCapabilityConsumer<ServiceReference<Object>>(), false);
 
         referenceTracker.updateRequirements(null);
 
     }
 
     @Test
-    @TestDuringDevelopment
     public void testUpdateItemsReplaceItemToExisting() {
-        testUpdateItemsReplaceItemToExisting(false);
-        testUpdateItemsReplaceItemToExisting(true);
-    }
-
-    private void testUpdateItemsReplaceItemToExisting(boolean survivor) {
-        TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
+        TestCapabilityConsumer<ServiceReference<Object>> actionHandler =
+                new TestCapabilityConsumer<ServiceReference<Object>>();
 
         @SuppressWarnings("unchecked")
         RequirementDefinition<ServiceReference<Object>>[] items1 = new RequirementDefinition[] {
@@ -445,13 +338,13 @@ public class ServiceReferenceCollectorTestComponent {
                 new Object(), createServiceProps("key", "1", "value", "1"));
 
         ServiceReferenceCollector<Object> collector = new ServiceReferenceCollector<Object>(context,
-                Object.class, items1, survivor, actionHandler, false);
+                Object.class, items1, actionHandler, false);
 
         collector.open();
 
         Assert.assertTrue(collector.isSatisfied());
 
-        actionHandler.clearCallHistory();
+        actionHandler.clearHistory();
 
         @SuppressWarnings("unchecked")
         RequirementDefinition<ServiceReference<Object>>[] items2 = new RequirementDefinition[] {
@@ -460,22 +353,7 @@ public class ServiceReferenceCollectorTestComponent {
 
         collector.updateRequirements(items2);
 
-        if (survivor) {
-            MethodCallData methodCall = actionHandler.pollMethodCallHistory();
-            Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
-        } else {
-            MethodCallData methodCall = actionHandler.pollMethodCallHistory();
-            Assert.assertEquals(TestActionHandler.METHOD_UNSATISFIED, methodCall.getMethodName());
-
-            methodCall = actionHandler.pollMethodCallHistory();
-            Assert.assertEquals(TestActionHandler.METHOD_UNBIND, methodCall.getMethodName());
-
-            methodCall = actionHandler.pollMethodCallHistory();
-            Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
-
-            methodCall = actionHandler.pollMethodCallHistory();
-            Assert.assertEquals(TestActionHandler.METHOD_SATISFIED, methodCall.getMethodName());
-        }
+        // TODO check updated method calls
 
         testSR1.unregister();
 
@@ -484,9 +362,11 @@ public class ServiceReferenceCollectorTestComponent {
 
     @Test
     public void testUpdateItemsUnopenedTracker() {
-        TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
+        TestCapabilityConsumer<ServiceReference<Object>> actionHandler =
+                new TestCapabilityConsumer<ServiceReference<Object>>();
+
         ServiceReferenceCollector<Object> referenceTracker = new ServiceReferenceCollector<Object>(context,
-                Object.class, EMPTY_ITEMS, true, actionHandler, false);
+                Object.class, EMPTY_ITEMS, actionHandler, false);
 
         Assert.assertFalse(referenceTracker.isSatisfied());
 
@@ -498,12 +378,12 @@ public class ServiceReferenceCollectorTestComponent {
         referenceTracker.updateRequirements(items);
 
         Assert.assertFalse(referenceTracker.isSatisfied());
-        Assert.assertNull(actionHandler.pollMethodCallHistory());
+        Assert.assertNull(actionHandler.pollCallParameters());
 
         referenceTracker.updateRequirements(EMPTY_ITEMS);
 
         Assert.assertFalse(referenceTracker.isSatisfied());
-        Assert.assertNull(actionHandler.pollMethodCallHistory());
+        Assert.assertNull(actionHandler.pollCallParameters());
     }
 
     /**

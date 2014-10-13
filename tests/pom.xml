@@ -50,7 +50,7 @@
             <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
             <Import-Package>*</Import-Package>
             <Export-Package />
-            <EOSGi-TestNum>19</EOSGi-TestNum>
+            <EOSGi-TestNum>17</EOSGi-TestNum>
             <Provide-Capability>testNamespace;zero:Long=0,testNamespace;one="1"</Provide-Capability>
           </instructions>
         </configuration>
@@ -115,7 +115,7 @@
     <dependency>
       <groupId>org.everit.osgi.dev</groupId>
       <artifactId>org.everit.osgi.dev.testrunner.junit4</artifactId>
-      <version>3.0.3</version>
+      <version>3.0.4</version>
     </dependency>
 
     <dependency>
