@@ -22,7 +22,7 @@ public class Suiting<C> {
 
     private final RequirementDefinition<C> requirement;
 
-    public Suiting(RequirementDefinition<C> requirement, C capability) {
+    public Suiting(final RequirementDefinition<C> requirement, final C capability) {
         this.requirement = requirement;
         this.capability = capability;
     }

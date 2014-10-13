@@ -41,8 +41,8 @@ public abstract class AbstractCapabilityCollector<C> {
 
     private Suiting<C>[] suitings;
 
-    public AbstractCapabilityCollector(BundleContext context, RequirementDefinition<C>[] requirements,
-            CapabilityConsumer<C> capabilityConsumer) {
+    public AbstractCapabilityCollector(final BundleContext context, final RequirementDefinition<C>[] requirements,
+            final CapabilityConsumer<C> capabilityConsumer) {
 
         Objects.requireNonNull(context, "Context must not be null");
         Objects.requireNonNull(capabilityConsumer, "Capability consumer must not be null");
@@ -56,7 +56,7 @@ public abstract class AbstractCapabilityCollector<C> {
         this.suitings = lSuitings;
     }
 
-    protected void addingCapablility(C capability) {
+    protected void addingCapablility(final C capability) {
         WriteLock writeLock = readWriteLock.writeLock();
         writeLock.lock();
 
@@ -90,7 +90,7 @@ public abstract class AbstractCapabilityCollector<C> {
 
     protected abstract void closeTracker();
 
-    private Suiting<C>[] createSuitingsWithoutCapability(RequirementDefinition<C>[] requirements) {
+    private Suiting<C>[] createSuitingsWithoutCapability(final RequirementDefinition<C>[] requirements) {
         @SuppressWarnings("unchecked")
         Suiting<C>[] lSuitings = new Suiting[requirements.length];
         for (int i = 0; i < requirements.length; i++) {
@@ -107,7 +107,7 @@ public abstract class AbstractCapabilityCollector<C> {
 
     protected abstract boolean matches(C capability, Filter filter);
 
-    protected void modifiedCapablility(C capability) {
+    protected void modifiedCapablility(final C capability) {
         WriteLock writeLock = readWriteLock.writeLock();
         writeLock.lock();
 
@@ -165,7 +165,7 @@ public abstract class AbstractCapabilityCollector<C> {
 
     protected abstract void openTracker();
 
-    protected void removedCapability(C capability) {
+    protected void removedCapability(final C capability) {
         WriteLock writeLock = readWriteLock.writeLock();
         writeLock.lock();
 
@@ -195,7 +195,7 @@ public abstract class AbstractCapabilityCollector<C> {
         writeLock.unlock();
     }
 
-    private C searchMatchingCapabilityForRequirement(RequirementDefinition<C> requirement) {
+    private C searchMatchingCapabilityForRequirement(final RequirementDefinition<C> requirement) {
         if (!opened) {
             return null;
         }
@@ -207,7 +207,7 @@ public abstract class AbstractCapabilityCollector<C> {
         }
 
         C matchingCapability = null;
-        for (int i = 0, n = availableCapabilities.length; i < n && matchingCapability == null; i++) {
+        for (int i = 0, n = availableCapabilities.length; (i < n) && (matchingCapability == null); i++) {
             Filter filter = requirement.getFilter();
             if (matches(availableCapabilities[i], filter)) {
                 matchingCapability = availableCapabilities[i];
@@ -216,7 +216,7 @@ public abstract class AbstractCapabilityCollector<C> {
         return matchingCapability;
     }
 
-    private boolean tryCapabilityOnUnsatisfiedRequirements(C capability) {
+    private boolean tryCapabilityOnUnsatisfiedRequirements(final C capability) {
         if (satisfied) {
             return false;
         }
@@ -248,22 +248,22 @@ public abstract class AbstractCapabilityCollector<C> {
     /**
      * Updates the requirements of this collector. Those requirements that were already satisfied remain unchanged.
      *
-     * @param requirements
+     * @param newRequirements
      *            The list of reference items to be tracked.
      * @throws NullPointerException
      *             if any of the element of the item array is null.
      * @throws DuplicateRequirementIdException
      *             if two or more reference items contain the same id.
      */
-    public void updateRequirements(RequirementDefinition<C>[] requirements) {
-        Objects.requireNonNull(requirements, "Items cannot be null");
-        validateRequirements(requirements);
+    public void updateRequirements(final RequirementDefinition<C>[] newRequirements) {
+        Objects.requireNonNull(newRequirements, "Items cannot be null");
+        validateRequirements(newRequirements);
 
         WriteLock writeLock = readWriteLock.writeLock();
         writeLock.lock();
 
         if (!opened) {
-            Suiting<C>[] newSuitings = createSuitingsWithoutCapability(requirements);
+            Suiting<C>[] newSuitings = createSuitingsWithoutCapability(newRequirements);
             this.suitings = newSuitings;
             return;
         }
@@ -271,10 +271,10 @@ public abstract class AbstractCapabilityCollector<C> {
         boolean lSatisfied = true;
 
         @SuppressWarnings("unchecked")
-        Suiting<C>[] tmpSuitings = new Suiting[requirements.length];
+        Suiting<C>[] tmpSuitings = new Suiting[newRequirements.length];
 
-        for (int i = 0; i < requirements.length; i++) {
-            RequirementDefinition<C> requirement = requirements[i];
+        for (int i = 0; i < newRequirements.length; i++) {
+            RequirementDefinition<C> requirement = newRequirements[i];
             C capability = searchMatchingCapabilityForRequirement(requirement);
             tmpSuitings[i] = new Suiting<C>(requirement, capability);
             if (capability == null) {
@@ -290,7 +290,7 @@ public abstract class AbstractCapabilityCollector<C> {
         writeLock.unlock();
     }
 
-    private void validateRequirements(RequirementDefinition<C>[] requirements) {
+    private void validateRequirements(final RequirementDefinition<C>[] requirements) {
         Set<String> usedIds = new HashSet<String>(requirements.length);
 
         for (RequirementDefinition<C> requirement : requirements) {

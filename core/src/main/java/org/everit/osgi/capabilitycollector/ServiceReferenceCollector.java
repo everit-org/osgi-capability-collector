@@ -28,18 +28,18 @@ public class ServiceReferenceCollector<S> extends AbstractCapabilityCollector<Se
     private class ReferenceTrackerCustomizer implements ServiceTrackerCustomizer<S, ServiceReference<S>> {
 
         @Override
-        public ServiceReference<S> addingService(ServiceReference<S> reference) {
+        public ServiceReference<S> addingService(final ServiceReference<S> reference) {
             addingCapablility(reference);
             return reference;
         }
 
         @Override
-        public void modifiedService(ServiceReference<S> reference, ServiceReference<S> tracked) {
+        public void modifiedService(final ServiceReference<S> reference, final ServiceReference<S> tracked) {
             modifiedCapablility(reference);
         }
 
         @Override
-        public void removedService(ServiceReference<S> reference, ServiceReference<S> tracked) {
+        public void removedService(final ServiceReference<S> reference, final ServiceReference<S> tracked) {
             removedCapability(reference);
         }
     }
@@ -48,9 +48,9 @@ public class ServiceReferenceCollector<S> extends AbstractCapabilityCollector<Se
 
     private final ServiceTracker<S, ServiceReference<S>> tracker;
 
-    public ServiceReferenceCollector(BundleContext context, Class<S> referenceType,
-            RequirementDefinition<ServiceReference<S>>[] items,
-            CapabilityConsumer<ServiceReference<S>> capabilityConsumer, boolean trackAllServices) {
+    public ServiceReferenceCollector(final BundleContext context, final Class<S> referenceType,
+            final RequirementDefinition<ServiceReference<S>>[] items,
+            final CapabilityConsumer<ServiceReference<S>> capabilityConsumer, final boolean trackAllServices) {
         super(context, items, capabilityConsumer);
 
         this.trackAllServices = trackAllServices;
@@ -78,8 +78,8 @@ public class ServiceReferenceCollector<S> extends AbstractCapabilityCollector<Se
     }
 
     @Override
-    protected boolean matches(ServiceReference<S> capability, Filter filter) {
-        return filter == null || filter.match(capability);
+    protected boolean matches(final ServiceReference<S> capability, final Filter filter) {
+        return (filter == null) || filter.match(capability);
     }
 
     @Override

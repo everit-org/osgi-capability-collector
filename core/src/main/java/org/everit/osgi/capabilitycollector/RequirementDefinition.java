@@ -36,7 +36,7 @@ public class RequirementDefinition<C> {
 
     private final String requirementId;
 
-    public RequirementDefinition(String requirementId, Filter filter, Map<String, Object> attributes) {
+    public RequirementDefinition(final String requirementId, final Filter filter, final Map<String, Object> attributes) {
         Objects.requireNonNull(requirementId, "Requirement id must be provided");
         Objects.requireNonNull(attributes,
                 "Attributes for requirement must be provided at least with a zero element map");
@@ -47,7 +47,7 @@ public class RequirementDefinition<C> {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (this == obj) {
             return true;
         }
@@ -84,7 +84,7 @@ public class RequirementDefinition<C> {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((requirementId == null) ? 0 : requirementId.hashCode());
+        result = (prime * result) + ((requirementId == null) ? 0 : requirementId.hashCode());
         return result;
     }
 

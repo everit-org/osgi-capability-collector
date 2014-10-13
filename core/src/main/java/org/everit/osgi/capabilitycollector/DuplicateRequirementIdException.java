@@ -19,11 +19,11 @@ package org.everit.osgi.capabilitycollector;
 public class DuplicateRequirementIdException extends RuntimeException {
 
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = -3478550199163779814L;
 
-    public DuplicateRequirementIdException(String message) {
+    public DuplicateRequirementIdException(final String message) {
         super(message);
     }
 

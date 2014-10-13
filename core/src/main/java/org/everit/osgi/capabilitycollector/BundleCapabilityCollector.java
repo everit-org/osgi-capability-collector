@@ -38,7 +38,7 @@ public class BundleCapabilityCollector extends AbstractCapabilityCollector<Bundl
     private class TrackerCustomizer implements BundleTrackerCustomizer<Bundle> {
 
         @Override
-        public Bundle addingBundle(Bundle bundle, BundleEvent event) {
+        public Bundle addingBundle(final Bundle bundle, final BundleEvent event) {
             BundleWiring bundleWiring = bundle.adapt(BundleWiring.class);
             List<BundleCapability> capabilities = bundleWiring.getCapabilities(namespace);
             for (BundleCapability bundleCapability : capabilities) {
@@ -54,12 +54,12 @@ public class BundleCapabilityCollector extends AbstractCapabilityCollector<Bundl
         }
 
         @Override
-        public void modifiedBundle(Bundle bundle, BundleEvent event, Bundle object) {
+        public void modifiedBundle(final Bundle bundle, final BundleEvent event, final Bundle object) {
             // Do nothing as this is only about bundle state change.
         }
 
         @Override
-        public void removedBundle(Bundle bundle, BundleEvent event, Bundle object) {
+        public void removedBundle(final Bundle bundle, final BundleEvent event, final Bundle object) {
             BundleWiring bundleWiring = bundle.adapt(BundleWiring.class);
             List<BundleCapability> capabilities = bundleWiring.getCapabilities(namespace);
 
@@ -83,9 +83,9 @@ public class BundleCapabilityCollector extends AbstractCapabilityCollector<Bundl
 
     private final BundleTracker<Bundle> tracker;
 
-    public BundleCapabilityCollector(BundleContext context, String namespace,
-            RequirementDefinition<BundleCapability>[] requirements,
-            CapabilityConsumer<BundleCapability> capabilityConsumer, int stateMask) {
+    public BundleCapabilityCollector(final BundleContext context, final String namespace,
+            final RequirementDefinition<BundleCapability>[] requirements,
+            final CapabilityConsumer<BundleCapability> capabilityConsumer, final int stateMask) {
         super(context, requirements, capabilityConsumer);
 
         if (((~(Bundle.RESOLVED | Bundle.STARTING | Bundle.STOPPING | Bundle.ACTIVE)) & stateMask) > 0) {
@@ -96,7 +96,7 @@ public class BundleCapabilityCollector extends AbstractCapabilityCollector<Bundl
         }
 
         this.namespace = namespace;
-        this.tracker = new BundleTracker<Bundle>(context, stateMask, new TrackerCustomizer());
+        tracker = new BundleTracker<Bundle>(context, stateMask, new TrackerCustomizer());
     }
 
     @Override
@@ -114,7 +114,7 @@ public class BundleCapabilityCollector extends AbstractCapabilityCollector<Bundl
     }
 
     @Override
-    protected boolean matches(BundleCapability capability, Filter filter) {
+    protected boolean matches(final BundleCapability capability, final Filter filter) {
         Map<String, Object> attributes = capability.getAttributes();
         return filter.matches(attributes);
     }
