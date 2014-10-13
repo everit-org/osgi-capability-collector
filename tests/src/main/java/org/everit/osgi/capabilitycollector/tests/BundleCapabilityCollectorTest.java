@@ -26,7 +26,6 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.everit.osgi.capabilitycollector.BundleCapabilityCollector;
 import org.everit.osgi.capabilitycollector.RequirementDefinition;
-import org.everit.osgi.capabilitycollector.tests.TestActionHandler.MethodCallData;
 import org.junit.Assert;
 import org.junit.Test;
 import org.osgi.framework.Bundle;
@@ -75,10 +74,10 @@ public class BundleCapabilityCollectorTest {
                 new RequirementDefinition<BundleCapability>("zero", createFilter("(zero=0)"), zeroAttributes),
                 new RequirementDefinition<BundleCapability>("two", createFilter("(two=2)"), oneAttributes) };
 
-        TestActionHandler<BundleCapability> actionHandler = new TestActionHandler<BundleCapability>();
+        TestCapabilityConsumer<BundleCapability> capabilityConsumer = new TestCapabilityConsumer<BundleCapability>();
 
         BundleCapabilityCollector collector = new BundleCapabilityCollector(context, "testNamespace",
-                unsatisfiedRequirements, false, actionHandler, Bundle.ACTIVE);
+                unsatisfiedRequirements, capabilityConsumer, Bundle.ACTIVE);
 
         collector.open();
 
@@ -86,17 +85,21 @@ public class BundleCapabilityCollectorTest {
         RequirementDefinition<BundleCapability>[] unsatisfiedRequirements2 = new RequirementDefinition[] {
                 new RequirementDefinition<BundleCapability>("two", createFilter("(two=2)"), oneAttributes) };
 
-        collector.updateItems(unsatisfiedRequirements2);
+        collector.updateRequirements(unsatisfiedRequirements2);
 
         @SuppressWarnings("unchecked")
         RequirementDefinition<BundleCapability>[] requirements = new RequirementDefinition[] {
                 new RequirementDefinition<BundleCapability>("zero", createFilter("(zero=0)"), zeroAttributes),
                 new RequirementDefinition<BundleCapability>("one", createFilter("(one=1)"), oneAttributes) };
 
-        collector.updateItems(requirements);
+        collector.updateRequirements(requirements);
+
+        capabilityConsumer.clearHistory();
 
         Assert.assertTrue(collector.isSatisfied());
-        BundleCapability zeroBundleCapability = actionHandler.getBinding("zero");
+        BundleCapability zeroBundleCapability = capabilityConsumer.pollCallParameters().getSuitings()[0]
+                .getCapability();
+
         Assert.assertNotNull(zeroBundleCapability);
         Object zeroAttributeValue = zeroBundleCapability.getAttributes().get("zero");
         Assert.assertEquals(Long.valueOf(0), zeroAttributeValue);
@@ -105,41 +108,33 @@ public class BundleCapabilityCollectorTest {
         RequirementDefinition<BundleCapability>[] newRequirements = new RequirementDefinition[] {
                 new RequirementDefinition<BundleCapability>("one", createFilter("(one=1)"), oneAttributes) };
 
-        actionHandler.clearCallHistory();
-        collector.updateItems(newRequirements);
+        capabilityConsumer.clearHistory();
+        collector.updateRequirements(newRequirements);
 
-        MethodCallData methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals("unsatisfied", methodCall.getMethodName());
-        methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals("unbind", methodCall.getMethodName());
+        CallParameters<BundleCapability> methodCall = capabilityConsumer.pollCallParameters();
 
-        @SuppressWarnings("unchecked")
-        RequirementDefinition<BundleCapability> requirement = (RequirementDefinition<BundleCapability>) methodCall
-                .getParams()[0];
-        Assert.assertEquals("zero", requirement.getRequirementId());
-
-        methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals("satisfied", methodCall.getMethodName());
+        RequirementDefinition<BundleCapability> requirement = methodCall.getSuitings()[0].getRequirement();
+        Assert.assertEquals("one", requirement.getRequirementId());
 
         collector.close();
     }
 
     @Test
     public void testStateMaskCheck() {
-        new BundleCapabilityCollector(context, "testNamespace", EMPTY_REQUIREMENTS, false,
-                new TestActionHandler<BundleCapability>(), Bundle.RESOLVED);
-        new BundleCapabilityCollector(context, "testNamespace", EMPTY_REQUIREMENTS, false,
-                new TestActionHandler<BundleCapability>(), Bundle.STARTING);
-        new BundleCapabilityCollector(context, "testNamespace", EMPTY_REQUIREMENTS, false,
-                new TestActionHandler<BundleCapability>(), Bundle.ACTIVE);
-        new BundleCapabilityCollector(context, "testNamespace", EMPTY_REQUIREMENTS, false,
-                new TestActionHandler<BundleCapability>(), Bundle.STOPPING);
-        new BundleCapabilityCollector(context, "testNamespace", EMPTY_REQUIREMENTS, false,
-                new TestActionHandler<BundleCapability>(), Bundle.STOPPING | Bundle.ACTIVE | Bundle.STARTING);
+        new BundleCapabilityCollector(context, "testNamespace", EMPTY_REQUIREMENTS,
+                new TestCapabilityConsumer<BundleCapability>(), Bundle.RESOLVED);
+        new BundleCapabilityCollector(context, "testNamespace", EMPTY_REQUIREMENTS,
+                new TestCapabilityConsumer<BundleCapability>(), Bundle.STARTING);
+        new BundleCapabilityCollector(context, "testNamespace", EMPTY_REQUIREMENTS,
+                new TestCapabilityConsumer<BundleCapability>(), Bundle.ACTIVE);
+        new BundleCapabilityCollector(context, "testNamespace", EMPTY_REQUIREMENTS,
+                new TestCapabilityConsumer<BundleCapability>(), Bundle.STOPPING);
+        new BundleCapabilityCollector(context, "testNamespace", EMPTY_REQUIREMENTS,
+                new TestCapabilityConsumer<BundleCapability>(), Bundle.STOPPING | Bundle.ACTIVE | Bundle.STARTING);
 
         try {
-            new BundleCapabilityCollector(context, "testNamespace", EMPTY_REQUIREMENTS, false,
-                    new TestActionHandler<BundleCapability>(), Bundle.INSTALLED);
+            new BundleCapabilityCollector(context, "testNamespace", EMPTY_REQUIREMENTS,
+                    new TestCapabilityConsumer<BundleCapability>(), Bundle.INSTALLED);
             Assert.fail("Exception should have been thrown");
         } catch (RuntimeException e) {
             // Right behavior

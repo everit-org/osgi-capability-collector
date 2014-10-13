@@ -16,19 +16,9 @@
  */
 package org.everit.osgi.capabilitycollector;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
@@ -38,32 +28,32 @@ import org.osgi.framework.Filter;
 
 public abstract class AbstractCapabilityCollector<C> {
 
-    // TODO handle RuntimeException for every actionHandler call
-    private final ActionHandler<C> actionHandler;
+    /**
+     * TODO Handle exceptions coming out from consumer
+     */
+    private final CapabilityConsumer<C> capabilityConsumer;
 
-    private final AtomicBoolean opened = new AtomicBoolean(false);
+    private volatile boolean opened = false;
 
     private final ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock(false);
 
-    private final Map<C, Collection<RequirementDefinition<C>>> satisfiedRequirementsByCapabilities =
-            new HashMap<C, Collection<RequirementDefinition<C>>>();
+    private volatile boolean satisfied = false;
 
-    private final boolean survivor;
+    private Suiting<C>[] suitings;
 
-    private final Set<RequirementDefinition<C>> unsatisfiedRequirements = new HashSet<RequirementDefinition<C>>();
-
-    public AbstractCapabilityCollector(BundleContext context, RequirementDefinition<C>[] items,
-            boolean survivor, ActionHandler<C> actionHandler) {
+    public AbstractCapabilityCollector(BundleContext context, RequirementDefinition<C>[] requirements,
+            CapabilityConsumer<C> capabilityConsumer) {
 
         Objects.requireNonNull(context, "Context must not be null");
-        Objects.requireNonNull(actionHandler, "Action handler must not be null");
-        Objects.requireNonNull(items, "Requirement item array must not be null");
+        Objects.requireNonNull(capabilityConsumer, "Capability consumer must not be null");
+        Objects.requireNonNull(requirements, "Requirement item array must not be null");
 
-        this.actionHandler = actionHandler;
-        this.survivor = survivor;
-        this.unsatisfiedRequirements.addAll(Arrays.asList(items));
+        this.capabilityConsumer = capabilityConsumer;
 
-        validateItems(items);
+        validateRequirements(requirements);
+
+        Suiting<C>[] lSuitings = createSuitingsWithoutCapability(requirements);
+        this.suitings = lSuitings;
     }
 
     protected void addingCapablility(C capability) {
@@ -75,47 +65,40 @@ public abstract class AbstractCapabilityCollector<C> {
         writeLock.unlock();
     }
 
-    private boolean addNewRequirementsDuringUpdate(Set<RequirementDefinition<C>> newRequirements, boolean satisfied) {
-        // TODO Auto-generated method stub
-        return false;
-    }
-
-    private void addRequirementToSatisfiedMap(RequirementDefinition<C> requirement, C capability) {
-        Collection<RequirementDefinition<C>> requirements = satisfiedRequirementsByCapabilities.get(capability);
-        if (requirements == null) {
-            requirements = new ArrayList<RequirementDefinition<C>>();
-            satisfiedRequirementsByCapabilities.put(capability, requirements);
-        }
-        requirements.add(requirement);
-    }
-
-    private void callBindForRequirement(RequirementDefinition<C> item, C capability) {
-        actionHandler.bind(item, capability);
-    }
-
     public void close() {
-        opened.set(false);
-        if (noItems()) {
-            actionHandler.unsatisfied();
-        } else {
+        WriteLock writeLock = readWriteLock.writeLock();
+        writeLock.lock();
+
+        try {
+            if (!opened) {
+                throw new IllegalStateException("Close was called on a Capability Collector that was already closed.");
+            }
+            opened = false;
+
             closeTracker();
+            if (noItems()) {
+                capabilityConsumer.accept(suitings, false);
+            }
+        } finally {
+            writeLock.unlock();
         }
     }
 
     protected abstract void closeTracker();
 
+    private Suiting<C>[] createSuitingsWithoutCapability(RequirementDefinition<C>[] requirements) {
+        @SuppressWarnings("unchecked")
+        Suiting<C>[] lSuitings = new Suiting[requirements.length];
+        for (int i = 0; i < requirements.length; i++) {
+            lSuitings[i] = new Suiting<C>(requirements[i], null);
+        }
+        return lSuitings;
+    }
+
     protected abstract C[] getAvailableCapabilities();
 
     public boolean isSatisfied() {
-        if (!opened.get()) {
-            return false;
-        }
-
-        ReadLock readLock = readWriteLock.readLock();
-        readLock.lock();
-        boolean result = unsatisfiedRequirements.isEmpty();
-        readLock.unlock();
-        return result;
+        return satisfied;
     }
 
     protected abstract boolean matches(C capability, Filter filter);
@@ -124,70 +107,15 @@ public abstract class AbstractCapabilityCollector<C> {
         WriteLock writeLock = readWriteLock.writeLock();
         writeLock.lock();
 
-        if (survivor) {
-            Collection<RequirementDefinition<C>> requirements = satisfiedRequirementsByCapabilities.get(capability);
-            if (requirements != null) {
-                for (Iterator<RequirementDefinition<C>> iterator = requirements.iterator(); iterator.hasNext();) {
-                    RequirementDefinition<C> requirement = iterator.next();
-                    Filter filter = requirement.getFilter();
-                    if (!matches(capability, filter)) {
-                        iterator.remove();
-                        C newMatchingCapability = searchMatchingCapabilityForRequirement(requirement);
-                        if (newMatchingCapability != null) {
-                            addRequirementToSatisfiedMap(requirement, newMatchingCapability);
-
-                            callBindForRequirement(requirement, newMatchingCapability);
-                        } else {
-                            boolean satisfied = isSatisfied();
-                            unsatisfiedRequirements.add(requirement);
-                            if (satisfied) {
-                                actionHandler.unsatisfied();
-                            }
-
-                            actionHandler.unbind(requirement);
-
-                        }
-                    }
-                }
-            }
-        } else {
-            Collection<RequirementDefinition<C>> requirements = satisfiedRequirementsByCapabilities.get(capability);
-            if (requirements != null) {
-                List<RequirementDefinition<C>> notMatchedRequirements = new LinkedList<RequirementDefinition<C>>();
-                for (RequirementDefinition<C> requirement : requirements) {
-                    Filter filter = requirement.getFilter();
-                    if (!matches(capability, filter)) {
-                        if (isSatisfied() && notMatchedRequirements.isEmpty()) {
-                            actionHandler.unsatisfied();
-                        }
-
-                        notMatchedRequirements.add(requirement);
-
-                        actionHandler.unbind(requirement);
-                    }
-                }
-
-                boolean unsatisfied = !notMatchedRequirements.isEmpty();
-                requirements.removeAll(notMatchedRequirements);
-                if (requirements.isEmpty()) {
-                    satisfiedRequirementsByCapabilities.remove(capability);
-                }
-                for (Iterator<RequirementDefinition<C>> iterator = notMatchedRequirements.iterator(); iterator
-                        .hasNext();) {
-                    RequirementDefinition<C> requirement = iterator.next();
-                    C newCapability = searchMatchingCapabilityForRequirement(requirement);
-                    if (newCapability != null) {
-                        iterator.remove();
-                        addRequirementToSatisfiedMap(requirement, newCapability);
-                        callBindForRequirement(requirement, newCapability);
-                    }
-                }
-                unsatisfiedRequirements.addAll(notMatchedRequirements);
-                if (unsatisfied && isSatisfied()) {
-                    actionHandler.satisfied();
-                }
+        for (int i = 0; i < suitings.length; i++) {
+            Suiting<C> suiting = suitings[i];
+            C suitedCapability = suiting.getCapability();
+            if (capability.equals(suitedCapability) && !matches(capability, suiting.getRequirement().getFilter())) {
+                suitings[i] = new Suiting<C>(suitings[i].getRequirement(), null);
+                satisfied = false;
             }
         }
+
         tryCapabilityOnUnsatisfiedRequirements(capability);
 
         writeLock.unlock();
@@ -198,18 +126,30 @@ public abstract class AbstractCapabilityCollector<C> {
         ReadLock readLock = readWriteLock.readLock();
         readLock.lock();
 
-        result = satisfiedRequirementsByCapabilities.isEmpty() && unsatisfiedRequirements.isEmpty();
+        result = (suitings.length == 0);
 
         readLock.unlock();
         return result;
     }
 
     public void open() {
-        opened.set(true);
-        if (noItems()) {
-            actionHandler.satisfied();
-        } else {
+        WriteLock writeLock = readWriteLock.writeLock();
+        writeLock.lock();
+
+        try {
+            if (!opened) {
+                throw new IllegalStateException("Open was called on a CapabilityCollector that was already opened.");
+            }
+            opened = true;
+
+            if (noItems()) {
+                capabilityConsumer.accept(suitings, true);
+            } else {
+                capabilityConsumer.accept(suitings, false);
+            }
             openTracker();
+        } finally {
+            writeLock.unlock();
         }
     }
 
@@ -219,101 +159,34 @@ public abstract class AbstractCapabilityCollector<C> {
         WriteLock writeLock = readWriteLock.writeLock();
         writeLock.lock();
 
-        if (survivor) {
-            Collection<RequirementDefinition<C>> requirements = satisfiedRequirementsByCapabilities.remove(capability);
-            if (requirements != null) {
-                Iterator<RequirementDefinition<C>> iterator = requirements.iterator();
-                while (iterator.hasNext()) {
-                    RequirementDefinition<C> requirement = iterator.next();
-                    C matchingCapability = searchMatchingCapabilityForRequirement(requirement);
-                    if (matchingCapability != null) {
-                        addRequirementToSatisfiedMap(requirement, matchingCapability);
+        boolean lSatisfied = satisfied;
+        boolean changed = false;
 
-                        callBindForRequirement(requirement, matchingCapability);
-                    } else {
-                        boolean satisfied = isSatisfied();
-
-                        unsatisfiedRequirements.add(requirement);
-                        if (satisfied) {
-                            actionHandler.unsatisfied();
-                        }
-
-                        actionHandler.unbind(requirement);
-                    }
+        for (int i = 0; i < suitings.length; i++) {
+            Suiting<C> suiting = suitings[i];
+            C suitedCapability = suiting.getCapability();
+            if (capability.equals(suitedCapability)) {
+                changed = true;
+                RequirementDefinition<C> requirement = suiting.getRequirement();
+                C newCapability = searchMatchingCapabilityForRequirement(requirement);
+                suitings[i] = new Suiting<C>(requirement, newCapability);
+                if (newCapability == null) {
+                    lSatisfied = false;
                 }
             }
+        }
 
-        } else {
-            Collection<RequirementDefinition<C>> requirements = satisfiedRequirementsByCapabilities.remove(capability);
-            if (requirements != null) {
-                boolean satisfied = isSatisfied();
-                unsatisfiedRequirements.addAll(requirements);
-                if (satisfied) {
-                    actionHandler.unsatisfied();
-                }
-                for (RequirementDefinition<C> requirement : requirements) {
-                    actionHandler.unbind(requirement);
-                }
+        this.satisfied = lSatisfied;
 
-                for (RequirementDefinition<C> requirement : requirements) {
-                    C matchingCapability = searchMatchingCapabilityForRequirement(requirement);
-
-                    if (matchingCapability != null) {
-                        callBindForRequirement(requirement, matchingCapability);
-                        addRequirementToSatisfiedMap(requirement, matchingCapability);
-                        unsatisfiedRequirements.remove(requirement);
-                    }
-                }
-
-                if (isSatisfied()) {
-                    actionHandler.satisfied();
-                }
-            }
+        if (changed) {
+            capabilityConsumer.accept(suitings.clone(), this.satisfied);
         }
 
         writeLock.unlock();
     }
 
-    private boolean removeDeletedRequirementsFromSatisfied(Set<RequirementDefinition<C>> newRequirementSet,
-            boolean satisfied) {
-        Iterator<Entry<C, Collection<RequirementDefinition<C>>>> satisfiedEntryIterator =
-                satisfiedRequirementsByCapabilities.entrySet().iterator();
-
-        while (satisfiedEntryIterator.hasNext()) {
-            Entry<C, Collection<RequirementDefinition<C>>> satisfiedEntry = satisfiedEntryIterator.next();
-            Collection<RequirementDefinition<C>> satisfiedRequirementCollection = satisfiedEntry.getValue();
-            Iterator<RequirementDefinition<C>> satisfiedRequirementIterator = satisfiedRequirementCollection.iterator();
-            while (satisfiedRequirementIterator.hasNext()) {
-                RequirementDefinition<C> requirement = satisfiedRequirementIterator.next();
-                if (!newRequirementSet.contains(requirement)) {
-                    satisfiedRequirementIterator.remove();
-                    if (satisfied && !survivor) {
-                        actionHandler.unsatisfied();
-                        satisfied = false;
-                    }
-                    actionHandler.unbind(requirement);
-                }
-            }
-            if (satisfiedRequirementCollection.isEmpty()) {
-                satisfiedEntryIterator.remove();
-            }
-        }
-        return satisfied;
-    }
-
-    private void removeNonExistentRequirementsFromUnsatisfiedCollection(Set<RequirementDefinition<C>> requirementList) {
-        Iterator<RequirementDefinition<C>> iterator = unsatisfiedRequirements.iterator();
-
-        while (iterator.hasNext()) {
-            RequirementDefinition<C> requirement = iterator.next();
-            if (!requirementList.contains(requirement)) {
-                iterator.remove();
-            }
-        }
-    }
-
     private C searchMatchingCapabilityForRequirement(RequirementDefinition<C> requirement) {
-        if (!opened.get()) {
+        if (!opened) {
             return null;
         }
 
@@ -334,50 +207,34 @@ public abstract class AbstractCapabilityCollector<C> {
     }
 
     private void tryCapabilityOnUnsatisfiedRequirements(C capability) {
-        if (!isSatisfied()) {
-            for (Iterator<RequirementDefinition<C>> iterator = unsatisfiedRequirements.iterator(); iterator.hasNext();) {
-                RequirementDefinition<C> requirement = iterator.next();
-                Filter filter = requirement.getFilter();
-                if (matches(capability, filter)) {
-                    callBindForRequirement(requirement, capability);
-                    iterator.remove();
-                    addRequirementToSatisfiedMap(requirement, capability);
+        if (satisfied) {
+            return;
+        }
+
+        boolean changed = false;
+        boolean lSatisfied = true;
+
+        for (int i = 0; i < suitings.length; i++) {
+            Suiting<C> suiting = suitings[i];
+
+            if (suiting.getCapability() == null) {
+                RequirementDefinition<C> requirement = suiting.getRequirement();
+                if (matches(capability, requirement.getFilter())) {
+                    changed = true;
+                    suitings[i] = new Suiting<C>(requirement, capability);
+                } else {
+                    lSatisfied = false;
                 }
-            }
-            if (isSatisfied()) {
-                actionHandler.satisfied();
             }
         }
 
-    }
-
-    private boolean updateExistingRequirementsAndRemoveThemFromNewSet(Set<RequirementDefinition<C>> newRequirements,
-            boolean satisfied) {
-        // TODO
-        Iterator<Entry<C, Collection<RequirementDefinition<C>>>> satisfiedEntryIterator =
-                satisfiedRequirementsByCapabilities.entrySet().iterator();
-
-        while (satisfiedEntryIterator.hasNext()) {
-            Entry<C, Collection<RequirementDefinition<C>>> satisfiedEntry = satisfiedEntryIterator.next();
-            Collection<RequirementDefinition<C>> satisfiedRequirementCollection = satisfiedEntry.getValue();
-            Iterator<RequirementDefinition<C>> satisfiedRequirementIterator = satisfiedRequirementCollection.iterator();
-            while (satisfiedRequirementIterator.hasNext()) {
-                RequirementDefinition<C> requirement = satisfiedRequirementIterator.next();
-
-                if (!newRequirementSet.contains(requirement)) {
-                    satisfiedRequirementIterator.remove();
-                    if (satisfied && !survivor) {
-                        actionHandler.unsatisfied();
-                        satisfied = false;
-                    }
-                    actionHandler.unbind(requirement);
-                }
-            }
-            if (satisfiedRequirementCollection.isEmpty()) {
-                satisfiedEntryIterator.remove();
-            }
+        if (lSatisfied) {
+            this.satisfied = true;
         }
-        return satisfied;
+
+        if (changed) {
+            capabilityConsumer.accept(suitings.clone(), this.satisfied);
+        }
     }
 
     /**
@@ -390,44 +247,42 @@ public abstract class AbstractCapabilityCollector<C> {
      * @throws DuplicateRequirementIdException
      *             if two or more reference items contain the same id.
      */
-    public void updateItems(RequirementDefinition<C>[] requirements) {
+    public void updateRequirements(RequirementDefinition<C>[] requirements) {
         Objects.requireNonNull(requirements, "Items cannot be null");
-        validateItems(requirements);
+        validateRequirements(requirements);
 
         WriteLock writeLock = readWriteLock.writeLock();
         writeLock.lock();
 
-        boolean thereWereRequirements = !noItems();
-
-        if (opened.get() && requirements.length > 0 && !thereWereRequirements) {
-            openTracker();
+        if (!opened) {
+            Suiting<C>[] newSuitings = createSuitingsWithoutCapability(requirements);
+            this.suitings = newSuitings;
+            return;
         }
 
-        Set<RequirementDefinition<C>> newRequirements = new HashSet<RequirementDefinition<C>>(
-                Arrays.asList(requirements));
+        boolean lSatisfied = true;
 
-        boolean satisfied = isSatisfied();
+        @SuppressWarnings("unchecked")
+        Suiting<C>[] tmpSuitings = new Suiting[requirements.length];
 
-        removeNonExistentRequirementsFromUnsatisfiedCollection(newRequirements);
-
-        satisfied = removeDeletedRequirementsFromSatisfied(newRequirements, satisfied);
-
-        satisfied = updateExistingRequirementsAndRemoveThemFromNewSet(newRequirements, satisfied);
-
-        satisfied = addNewRequirementsDuringUpdate(newRequirements, satisfied);
-
-        if (!satisfied && isSatisfied()) {
-            actionHandler.satisfied();
+        for (int i = 0; i < requirements.length; i++) {
+            RequirementDefinition<C> requirement = requirements[i];
+            C capability = searchMatchingCapabilityForRequirement(requirement);
+            tmpSuitings[i] = new Suiting<C>(requirement, capability);
+            if (capability == null) {
+                lSatisfied = false;
+            }
         }
 
-        if (opened.get() && thereWereRequirements && noItems()) {
-            closeTracker();
-        }
+        this.satisfied = lSatisfied;
+        this.suitings = tmpSuitings;
+
+        capabilityConsumer.accept(suitings, satisfied);
 
         writeLock.unlock();
     }
 
-    private void validateItems(RequirementDefinition<C>[] requirements) {
+    private void validateRequirements(RequirementDefinition<C>[] requirements) {
         Set<String> usedIds = new HashSet<String>(requirements.length);
 
         for (RequirementDefinition<C> requirement : requirements) {

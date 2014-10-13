@@ -84,9 +84,9 @@ public class BundleCapabilityCollector extends AbstractCapabilityCollector<Bundl
     private final BundleTracker<Bundle> tracker;
 
     public BundleCapabilityCollector(BundleContext context, String namespace,
-            RequirementDefinition<BundleCapability>[] requirements, boolean survivor,
-            ActionHandler<BundleCapability> actionHandler, int stateMask) {
-        super(context, requirements, survivor, actionHandler);
+            RequirementDefinition<BundleCapability>[] requirements,
+            CapabilityConsumer<BundleCapability> capabilityConsumer, int stateMask) {
+        super(context, requirements, capabilityConsumer);
 
         if (((~(Bundle.RESOLVED | Bundle.STARTING | Bundle.STOPPING | Bundle.ACTIVE)) & stateMask) > 0) {
             // TODO Custom exception type

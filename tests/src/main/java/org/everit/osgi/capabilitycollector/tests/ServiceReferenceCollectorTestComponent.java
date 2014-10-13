@@ -30,7 +30,7 @@ import org.apache.felix.scr.annotations.Service;
 import org.everit.osgi.capabilitycollector.DuplicateRequirementIdException;
 import org.everit.osgi.capabilitycollector.RequirementDefinition;
 import org.everit.osgi.capabilitycollector.ServiceReferenceCollector;
-import org.everit.osgi.capabilitycollector.tests.TestActionHandler.MethodCallData;
+import org.everit.osgi.capabilitycollector.Suiting;
 import org.everit.osgi.dev.testrunner.TestDuringDevelopment;
 import org.junit.Assert;
 import org.junit.Test;
@@ -84,8 +84,8 @@ public class ServiceReferenceCollectorTestComponent {
                 new RequirementDefinition<ServiceReference<Object>>("test", null, EMPTY_ATTRIBUTE_MAP),
                 new RequirementDefinition<ServiceReference<Object>>("test", null, EMPTY_ATTRIBUTE_MAP) };
 
-        new ServiceReferenceCollector<Object>(context, Object.class, items, false,
-                new TestActionHandler<ServiceReference<Object>>(), false);
+        new ServiceReferenceCollector<Object>(context, Object.class, items,
+                new TestCapabilityConsumer<ServiceReference<Object>>(), false);
     }
 
     @Test
@@ -99,90 +99,84 @@ public class ServiceReferenceCollectorTestComponent {
                 new RequirementDefinition<ServiceReference<Object>>(
                         "test1", createFilter("(key=1)"), EMPTY_ATTRIBUTE_MAP) };
 
-        TestActionHandler<ServiceReference<Object>> actionHandler =
-                new TestActionHandler<ServiceReference<Object>>();
+        TestCapabilityConsumer<ServiceReference<Object>> capabilityConsumer =
+                new TestCapabilityConsumer<ServiceReference<Object>>();
 
         ServiceReferenceCollector<Object> referenceTracker = new ServiceReferenceCollector<Object>(context,
-                Object.class,
-                items, false, actionHandler, false);
+                Object.class, items, capabilityConsumer, false);
 
         referenceTracker.open();
 
-        Assert.assertFalse(actionHandler.isSatisfied());
+        CallParameters<ServiceReference<Object>> callParameters = capabilityConsumer.pollCallParameters();
+        Assert.assertFalse(callParameters.isSatisfied());
 
         ServiceRegistration<Object> test0sSR = context.registerService(Object.class,
                 new Object(), createServiceProps("key", "0", "value", "0"));
 
-        Assert.assertFalse(actionHandler.isSatisfied());
-        Assert.assertEquals("0", actionHandler.getBinding("test0").getProperty("value"));
-        Assert.assertEquals("0", actionHandler.getBinding("test0_s").getProperty("value"));
-        Assert.assertFalse(actionHandler.containsBinding("test1"));
+        Assert.assertFalse(capabilityConsumer.isSatisfied());
+        callParameters = capabilityConsumer.pollCallParameters();
+        Suiting<ServiceReference<Object>>[] suitings = callParameters.getSuitings();
+
+        Assert.assertEquals("0", suitings[0].getCapability().getProperty("value"));
+        Assert.assertEquals("0", suitings[1].getCapability().getProperty("value"));
+        Assert.assertNull(suitings[2].getCapability());
 
         ServiceRegistration<Object> test1SR = context.registerService(Object.class,
                 new Object(), createServiceProps("key", "1"));
 
-        Assert.assertTrue(actionHandler.isSatisfied());
+        Assert.assertTrue(capabilityConsumer.isSatisfied());
 
         ServiceRegistration<Object> test0SR = context.registerService(Object.class,
                 new Object(), createServiceProps("key", "0", "value", "0"));
 
-        actionHandler.clearCallHistory();
+        capabilityConsumer.clearHistory();
 
         test0sSR.unregister();
 
-        MethodCallData methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals(TestActionHandler.METHOD_UNSATISFIED, methodCall.getMethodName());
+        CallParameters<ServiceReference<Object>> methodCall = capabilityConsumer.pollCallParameters();
 
-        methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals(TestActionHandler.METHOD_UNBIND, methodCall.getMethodName());
+        Assert.assertFalse(methodCall.isSatisfied());
 
-        methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals(TestActionHandler.METHOD_UNBIND, methodCall.getMethodName());
-
-        methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
-
-        methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
-
-        methodCall = actionHandler.pollMethodCallHistory();
-        Assert.assertEquals(TestActionHandler.METHOD_SATISFIED, methodCall.getMethodName());
+        suitings = callParameters.getSuitings();
+        Assert.assertEquals("0", suitings[0].getCapability().getProperty("value"));
+        Assert.assertEquals("0", suitings[1].getCapability().getProperty("value"));
+        Assert.assertNull(suitings[2].getCapability());
 
         test0SR.setProperties(createServiceProps("key", "0", "value", "0", "x", "y"));
 
-        Assert.assertTrue(actionHandler.isSatisfied());
+        Assert.assertTrue(capabilityConsumer.isSatisfied());
 
         test0SR.setProperties(createServiceProps("key", "5", "value", "0", "x", "y"));
 
-        Assert.assertFalse(actionHandler.isSatisfied());
+        Assert.assertFalse(capabilityConsumer.isSatisfied());
 
         test0SR.setProperties(createServiceProps("key", "0", "value", "0", "x", "y"));
 
-        Assert.assertTrue(actionHandler.isSatisfied());
+        Assert.assertTrue(capabilityConsumer.isSatisfied());
 
         ServiceRegistration<Object> test0sSR2 = context.registerService(Object.class,
                 new Object(), createServiceProps("key", "0", "value", "0"));
 
-        actionHandler.clearCallHistory();
+        capabilityConsumer.clearCallHistory();
 
         test0SR.setProperties(createServiceProps("key", "5", "value", "0", "x", "y"));
 
-        methodCall = actionHandler.pollMethodCallHistory();
+        methodCall = capabilityConsumer.pollMethodCallHistory();
         Assert.assertEquals(TestActionHandler.METHOD_UNSATISFIED, methodCall.getMethodName());
 
-        methodCall = actionHandler.pollMethodCallHistory();
+        methodCall = capabilityConsumer.pollMethodCallHistory();
         Assert.assertEquals(TestActionHandler.METHOD_UNBIND, methodCall.getMethodName());
 
-        methodCall = actionHandler.pollMethodCallHistory();
+        methodCall = capabilityConsumer.pollMethodCallHistory();
         Assert.assertEquals(TestActionHandler.METHOD_UNBIND, methodCall.getMethodName());
 
-        methodCall = actionHandler.pollMethodCallHistory();
+        methodCall = capabilityConsumer.pollMethodCallHistory();
         Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
 
-        methodCall = actionHandler.pollMethodCallHistory();
+        methodCall = capabilityConsumer.pollMethodCallHistory();
         Assert.assertEquals(TestActionHandler.METHOD_BIND, methodCall.getMethodName());
 
-        methodCall = actionHandler.pollMethodCallHistory();
+        methodCall = capabilityConsumer.pollMethodCallHistory();
         Assert.assertEquals(TestActionHandler.METHOD_SATISFIED, methodCall.getMethodName());
 
         test0sSR2.unregister();
@@ -191,7 +185,7 @@ public class ServiceReferenceCollectorTestComponent {
 
         test0SR.unregister();
 
-        Assert.assertFalse(actionHandler.isSatisfied());
+        Assert.assertFalse(capabilityConsumer.isSatisfied());
 
         referenceTracker.close();
 
@@ -398,22 +392,22 @@ public class ServiceReferenceCollectorTestComponent {
         RequirementDefinition<ServiceReference<Object>>[] items = new RequirementDefinition[] {
                 new RequirementDefinition<Object>("1", createFilter("(key=1)"), new HashMap<String, Object>()) };
 
-        referenceTracker.updateItems(items);
+        referenceTracker.updateRequirements(items);
 
         Assert.assertFalse(referenceTracker.isSatisfied());
 
-        referenceTracker.updateItems(EMPTY_ITEMS);
+        referenceTracker.updateRequirements(EMPTY_ITEMS);
 
         Assert.assertTrue(referenceTracker.isSatisfied());
 
         ServiceRegistration<Object> testSR1 = context.registerService(Object.class,
                 new Object(), createServiceProps("key", "1"));
 
-        referenceTracker.updateItems(items);
+        referenceTracker.updateRequirements(items);
 
         Assert.assertTrue(referenceTracker.isSatisfied());
 
-        referenceTracker.updateItems(EMPTY_ITEMS);
+        referenceTracker.updateRequirements(EMPTY_ITEMS);
 
         Assert.assertTrue(referenceTracker.isSatisfied());
 
@@ -428,7 +422,7 @@ public class ServiceReferenceCollectorTestComponent {
         ServiceReferenceCollector<Object> referenceTracker = new ServiceReferenceCollector<Object>(context,
                 Object.class, EMPTY_ITEMS, false, new TestActionHandler<ServiceReference<Object>>(), false);
 
-        referenceTracker.updateItems(null);
+        referenceTracker.updateRequirements(null);
 
     }
 
@@ -464,7 +458,7 @@ public class ServiceReferenceCollectorTestComponent {
                 new RequirementDefinition<ServiceReference<Object>>("1", createFilter("(value=1)"),
                         new HashMap<String, Object>()) };
 
-        collector.updateItems(items2);
+        collector.updateRequirements(items2);
 
         if (survivor) {
             MethodCallData methodCall = actionHandler.pollMethodCallHistory();
@@ -501,12 +495,12 @@ public class ServiceReferenceCollectorTestComponent {
                 new RequirementDefinition<ServiceReference<Object>>("1", createFilter("(key=1)"),
                         new HashMap<String, Object>()) };
 
-        referenceTracker.updateItems(items);
+        referenceTracker.updateRequirements(items);
 
         Assert.assertFalse(referenceTracker.isSatisfied());
         Assert.assertNull(actionHandler.pollMethodCallHistory());
 
-        referenceTracker.updateItems(EMPTY_ITEMS);
+        referenceTracker.updateRequirements(EMPTY_ITEMS);
 
         Assert.assertFalse(referenceTracker.isSatisfied());
         Assert.assertNull(actionHandler.pollMethodCallHistory());
@@ -518,18 +512,20 @@ public class ServiceReferenceCollectorTestComponent {
      */
     @Test
     public void testZeroItems() {
-        TestActionHandler<ServiceReference<Object>> actionHandler = new TestActionHandler<ServiceReference<Object>>();
+        TestCapabilityConsumer<ServiceReference<Object>> capabilityConsumer =
+                new TestCapabilityConsumer<ServiceReference<Object>>();
 
-        ServiceReferenceCollector<Object> tracker = new ServiceReferenceCollector<Object>(context,
-                Object.class,
-                EMPTY_ITEMS, false, actionHandler, false);
+        ServiceReferenceCollector<Object> tracker = new ServiceReferenceCollector<Object>(context, Object.class,
+                EMPTY_ITEMS, capabilityConsumer, false);
+
+        Assert.assertFalse(capabilityConsumer.isSatisfied());
 
         tracker.open();
 
-        Assert.assertTrue(actionHandler.isSatisfied());
+        Assert.assertTrue(capabilityConsumer.isSatisfied());
 
         tracker.close();
 
-        Assert.assertFalse(actionHandler.isSatisfied());
+        Assert.assertFalse(capabilityConsumer.isSatisfied());
     }
 }
