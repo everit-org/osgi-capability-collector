@@ -23,51 +23,18 @@ Each requirement has the following properties:
 If the filter allows, the same OSGi capability can be attached to multiple
 requirements.
 
-## ActionHandler
+## CapabilityConsumer
 
-CapabilityCollector communicates via an ActionHandler. The handler instance
-must be provided during the instantiation of CapabilityCollector.
+TODO...
 
-For more information, please see the javadoc of the ActionHandler interface.
+For more information, please see the javadoc of the CapabilityConsumer
+interface.
 
-## Modes
 
-### Standard mode
-
-In case a capability is removed but there is another one available for a
-specific requirement, the following methods will be called on ActionHandler:
-
- - __unsatisfied__
- - __unbind__: The collector unbinds the old capability from the requirement
- - __bind__: The collector binds the new capability to the requirement
- - __satisfied__
- 
-### Dynamic mode
-
-In case a capability is removed but there is another one available for a
-specific requirement, the following methods will be called on ActionHandler:
-
- - __bind__: The collector binds the new capability to the requirement. In
-   this case the collector remains satisfied (if it was satisfied before)
-   and the _unbind_ method is not called at all. Unbind is called only if
-   there is no capability that satisfies the requirement anymore. 
-
-## Updating items
+## Updating requirements
 
 It is possible to update the requirements of a collector even if its
-opened. This function has two different behaviors based on the mode of
-the collector.
+opened.
 
-### Updating a standard tracker
-
-In case of any change, the Collector calls _unsatisfied_ on the
-_actionHandler_ before processing the new requirements. If all of the
-requirements are satisfied in the end, the _satisfied_ method of
-_ActionHandler_ will be called.
-
-### Updating a dinamyc tracker
-
-The Collector is _satisfied_ until it processes a requirement from the newly
-specified requirement list that cannot be satisfied.
 
 [![Analytics](https://ga-beacon.appspot.com/UA-15041869-4/everit-org/osgi-capability-collector)](https://github.com/igrigorik/ga-beacon)

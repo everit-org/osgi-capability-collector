@@ -26,6 +26,7 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.everit.osgi.capabilitycollector.BundleCapabilityCollector;
 import org.everit.osgi.capabilitycollector.RequirementDefinition;
+import org.everit.osgi.dev.testrunner.TestDuringDevelopment;
 import org.junit.Assert;
 import org.junit.Test;
 import org.osgi.framework.Bundle;
@@ -40,6 +41,7 @@ import org.osgi.framework.wiring.BundleCapability;
         @Property(name = "eosgi.testEngine", value = "junit4")
 })
 @Service(value = BundleCapabilityCollectorTest.class)
+@TestDuringDevelopment
 public class BundleCapabilityCollectorTest {
 
     @SuppressWarnings("unchecked")
