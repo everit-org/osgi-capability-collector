@@ -68,6 +68,27 @@ public abstract class AbstractCapabilityCollector<C> {
         writeLock.unlock();
     }
 
+    private boolean areNewRequirementsSame(RequirementDefinition<C>[] newRequirements) {
+        if (newRequirements.length != suitings.length) {
+            return false;
+        }
+
+        for (int i = 0, n = suitings.length; i < n; i++) {
+            RequirementDefinition<C> oldRequirement = suitings[i].getRequirement();
+            RequirementDefinition<C> newRequirement = newRequirements[i];
+            Filter oldFilter = oldRequirement.getFilter();
+            Filter newFilter = newRequirement.getFilter();
+            if (oldRequirement != newRequirement
+                    || !oldRequirement.getRequirementId().equals(newRequirement.getRequirementId())
+                    || !Objects.equals(oldFilter, newFilter)
+                    || !oldRequirement.getAttributes().equals(newRequirement.getAttributes())) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public void close() {
         WriteLock writeLock = readWriteLock.writeLock();
         writeLock.lock();
@@ -261,6 +282,10 @@ public abstract class AbstractCapabilityCollector<C> {
 
         WriteLock writeLock = readWriteLock.writeLock();
         writeLock.lock();
+
+        if (areNewRequirementsSame(newRequirements)) {
+            return;
+        }
 
         if (!opened) {
             Suiting<C>[] newSuitings = createSuitingsWithoutCapability(newRequirements);
