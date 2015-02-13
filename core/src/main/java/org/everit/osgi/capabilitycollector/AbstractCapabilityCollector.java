@@ -68,7 +68,7 @@ public abstract class AbstractCapabilityCollector<C> {
         writeLock.unlock();
     }
 
-    private boolean areNewRequirementsSame(RequirementDefinition<C>[] newRequirements) {
+    private boolean areNewRequirementsSame(final RequirementDefinition<C>[] newRequirements) {
         if (newRequirements.length != suitings.length) {
             return false;
         }
@@ -190,30 +190,33 @@ public abstract class AbstractCapabilityCollector<C> {
         WriteLock writeLock = readWriteLock.writeLock();
         writeLock.lock();
 
-        boolean lSatisfied = satisfied;
-        boolean changed = false;
+        try {
 
-        for (int i = 0; i < suitings.length; i++) {
-            Suiting<C> suiting = suitings[i];
-            C suitedCapability = suiting.getCapability();
-            if (capability.equals(suitedCapability)) {
-                changed = true;
-                RequirementDefinition<C> requirement = suiting.getRequirement();
-                C newCapability = searchMatchingCapabilityForRequirement(requirement);
-                suitings[i] = new Suiting<C>(requirement, newCapability);
-                if (newCapability == null) {
-                    lSatisfied = false;
+            boolean lSatisfied = satisfied;
+            boolean changed = false;
+
+            for (int i = 0; i < suitings.length; i++) {
+                Suiting<C> suiting = suitings[i];
+                C suitedCapability = suiting.getCapability();
+                if (capability.equals(suitedCapability)) {
+                    changed = true;
+                    RequirementDefinition<C> requirement = suiting.getRequirement();
+                    C newCapability = searchMatchingCapabilityForRequirement(requirement);
+                    suitings[i] = new Suiting<C>(requirement, newCapability);
+                    if (newCapability == null) {
+                        lSatisfied = false;
+                    }
                 }
             }
+
+            this.satisfied = lSatisfied;
+
+            if (changed) {
+                capabilityConsumer.accept(suitings.clone(), this.satisfied);
+            }
+        } finally {
+            writeLock.unlock();
         }
-
-        this.satisfied = lSatisfied;
-
-        if (changed) {
-            capabilityConsumer.accept(suitings.clone(), this.satisfied);
-        }
-
-        writeLock.unlock();
     }
 
     private C searchMatchingCapabilityForRequirement(final RequirementDefinition<C> requirement) {
@@ -283,36 +286,38 @@ public abstract class AbstractCapabilityCollector<C> {
         WriteLock writeLock = readWriteLock.writeLock();
         writeLock.lock();
 
-        if (areNewRequirementsSame(newRequirements)) {
-            return;
-        }
-
-        if (!opened) {
-            Suiting<C>[] newSuitings = createSuitingsWithoutCapability(newRequirements);
-            this.suitings = newSuitings;
-            return;
-        }
-
-        boolean lSatisfied = true;
-
-        @SuppressWarnings("unchecked")
-        Suiting<C>[] tmpSuitings = new Suiting[newRequirements.length];
-
-        for (int i = 0; i < newRequirements.length; i++) {
-            RequirementDefinition<C> requirement = newRequirements[i];
-            C capability = searchMatchingCapabilityForRequirement(requirement);
-            tmpSuitings[i] = new Suiting<C>(requirement, capability);
-            if (capability == null) {
-                lSatisfied = false;
+        try {
+            if (areNewRequirementsSame(newRequirements)) {
+                return;
             }
+
+            if (!opened) {
+                Suiting<C>[] newSuitings = createSuitingsWithoutCapability(newRequirements);
+                this.suitings = newSuitings;
+                return;
+            }
+
+            boolean lSatisfied = true;
+
+            @SuppressWarnings("unchecked")
+            Suiting<C>[] tmpSuitings = new Suiting[newRequirements.length];
+
+            for (int i = 0; i < newRequirements.length; i++) {
+                RequirementDefinition<C> requirement = newRequirements[i];
+                C capability = searchMatchingCapabilityForRequirement(requirement);
+                tmpSuitings[i] = new Suiting<C>(requirement, capability);
+                if (capability == null) {
+                    lSatisfied = false;
+                }
+            }
+
+            this.satisfied = lSatisfied;
+            this.suitings = tmpSuitings;
+
+            capabilityConsumer.accept(suitings, satisfied);
+        } finally {
+            writeLock.unlock();
         }
-
-        this.satisfied = lSatisfied;
-        this.suitings = tmpSuitings;
-
-        capabilityConsumer.accept(suitings, satisfied);
-
-        writeLock.unlock();
     }
 
     private void validateRequirements(final RequirementDefinition<C>[] requirements) {
