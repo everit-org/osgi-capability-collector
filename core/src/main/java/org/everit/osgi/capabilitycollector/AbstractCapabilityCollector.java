@@ -122,6 +122,10 @@ public abstract class AbstractCapabilityCollector<C> {
 
     protected abstract C[] getAvailableCapabilities();
 
+    public boolean isOpened() {
+        return opened;
+    }
+
     public boolean isSatisfied() {
         return satisfied;
     }
