@@ -89,8 +89,7 @@ public class BundleCapabilityCollector extends AbstractCapabilityCollector<Bundl
         super(context, requirements, capabilityConsumer);
 
         if (((~(Bundle.RESOLVED | Bundle.STARTING | Bundle.STOPPING | Bundle.ACTIVE)) & stateMask) > 0) {
-            // TODO Custom exception type
-            throw new RuntimeException(
+            throw new IllegalArgumentException(
                     "Only RESOLVED, STARTING, ACTIVE and STOPPING states are allowed in the bundle stateMask: "
                             + stateMask);
         }
