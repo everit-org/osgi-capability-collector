@@ -23,6 +23,9 @@ Each requirement has the following properties:
 If the filter allows, the same OSGi capability can be attached to multiple
 requirements.
 
+A Capability Collector becomes satisfied if all of the requirements are
+satisfied.
+
 ## CapabilityConsumer
 
 The programmer, who wants to use the library, must implement the

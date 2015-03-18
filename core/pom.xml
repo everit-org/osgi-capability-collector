@@ -28,7 +28,7 @@
 
   <groupId>org.everit.osgi</groupId>
   <artifactId>org.everit.osgi.capabilitycollector</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0</version>
 
   <packaging>bundle</packaging>
   <name>Everit - OSGi Capability Collector</name>
@@ -59,8 +59,8 @@
 
   <licenses>
     <license>
-      <name>GNU Lesser General Public License v3.0</name>
-      <url>http://opensource.org/licenses/LGPL-3.0</url>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
