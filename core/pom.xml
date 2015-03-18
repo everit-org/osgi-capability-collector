@@ -46,7 +46,7 @@
     <url>https://github.com/everit-org/${projectpath}</url>
   </scm>
 
-  <url>http://everit.org</url>
+  <url>https://github.com/everit-org/${projectpath}</url>
 
   <ciManagement>
     <system>Jenkins</system>
@@ -73,7 +73,7 @@
 
   <organization>
     <name>Everit Kft.</name>
-    <url>http://www.everit.biz</url>
+    <url>http://www.everit.org</url>
   </organization>
 
   <build>
