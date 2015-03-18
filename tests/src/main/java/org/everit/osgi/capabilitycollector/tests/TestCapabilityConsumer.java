@@ -1,18 +1,17 @@
-/**
- * This file is part of Everit - OSGi Capability Collector Tests.
+/*
+ * Copyright (C) 2011 Everit Kft. (http://www.everit.org)
  *
- * Everit - OSGi Capability Collector Tests is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Everit - OSGi Capability Collector Tests is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ *         http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU Lesser General Public License
- * along with Everit - OSGi Capability Collector Tests.  If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.everit.osgi.capabilitycollector.tests;
 
@@ -21,31 +20,40 @@ import java.util.LinkedList;
 import org.everit.osgi.capabilitycollector.CapabilityConsumer;
 import org.everit.osgi.capabilitycollector.Suiting;
 
+/**
+ * Consumer implementation that remembers called functions.
+ *
+ * @param <C>
+ *          The type of the capability.
+ */
 public class TestCapabilityConsumer<C> implements CapabilityConsumer<C> {
 
-    private final LinkedList<CallParameters<C>> callHistory = new LinkedList<CallParameters<C>>();
+  private final LinkedList<CallParameters<C>> callHistory = new LinkedList<CallParameters<C>>();
 
-    private boolean satisfied = false;
+  private boolean satisfied = false;
 
-    @Override
-    public void accept(Suiting<C>[] suitings, Boolean satisfied) {
-        callHistory.add(new CallParameters<C>(satisfied, suitings));
-        this.satisfied = satisfied;
+  @Override
+  public void accept(final Suiting<C>[] suitings, final boolean pSatisfied) {
+    callHistory.add(new CallParameters<C>(pSatisfied, suitings));
+    this.satisfied = pSatisfied;
+  }
+
+  public void clearHistory() {
+    callHistory.clear();
+  }
+
+  public boolean isSatisfied() {
+    return satisfied;
+  }
+
+  /**
+   * Polls the parameters of the next function call of the call history queue.
+   */
+  public CallParameters<C> pollCallParameters() {
+    if (callHistory.isEmpty()) {
+      return null;
     }
-
-    public void clearHistory() {
-        callHistory.clear();
-    }
-
-    public boolean isSatisfied() {
-        return satisfied;
-    }
-
-    public CallParameters<C> pollCallParameters() {
-        if (callHistory.isEmpty()) {
-            return null;
-        }
-        return callHistory.removeFirst();
-    }
+    return callHistory.removeFirst();
+  }
 
 }

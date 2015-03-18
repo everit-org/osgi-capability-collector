@@ -1,18 +1,17 @@
-/**
- * This file is part of Everit - OSGi Capability Collector.
+/*
+ * Copyright (C) 2011 Everit Kft. (http://www.everit.biz)
  *
- * Everit - OSGi Capability Collector is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Everit - OSGi Capability Collector is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ *         http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU Lesser General Public License
- * along with Everit - OSGi Capability Collector.  If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.everit.osgi.capabilitycollector;
 
@@ -24,44 +23,66 @@ import java.util.Objects;
 import org.osgi.framework.Filter;
 
 /**
+ * The definition of a requirement.
  *
  * @param <C>
- *            Type of capability that satisfies this requirement.
+ *          Type of capability that satisfies this requirement.
  */
 public class RequirementDefinition<C> {
 
-    private final Map<String, Object> attributes;
+  private final Map<String, Object> attributes;
 
-    private final Filter filter;
+  private final Filter filter;
 
-    private final String requirementId;
+  private final String requirementId;
 
-    public RequirementDefinition(final String requirementId, final Filter filter, final Map<String, Object> attributes) {
-        Objects.requireNonNull(requirementId, "Requirement id must be provided");
-        Objects.requireNonNull(attributes,
-                "Attributes for requirement must be provided at least with a zero element map");
+  /**
+   * Constructor of {@link RequirementDefinition}.
+   *
+   * @param requirementId
+   *          Id of the requirement that must be unique within the same collector.
+   * @param filter
+   *          A capability can satisfy this requirement if the filter matches the capability.
+   * @param attributes
+   *          Additional metadata that can be used by the {@link CapabilityConsumer} implementation.
+   */
+  public RequirementDefinition(final String requirementId, final Filter filter,
+      final Map<String, Object> attributes) {
+    Objects.requireNonNull(requirementId, "Requirement id must be provided");
+    Objects.requireNonNull(attributes,
+        "Attributes for requirement must be provided at least with a zero element map");
 
-        this.requirementId = requirementId;
-        this.filter = filter;
-        this.attributes = Collections.unmodifiableMap(new LinkedHashMap<String, Object>(attributes));
-    }
+    this.requirementId = requirementId;
+    this.filter = filter;
+    this.attributes = Collections.unmodifiableMap(new LinkedHashMap<String, Object>(attributes));
+  }
 
-    public Map<String, Object> getAttributes() {
-        return attributes;
-    }
+  /**
+   * Additional metadata that can be used by the {@link CapabilityConsumer} implementation.
+   */
+  public Map<String, Object> getAttributes() {
+    return attributes;
+  }
 
-    public Filter getFilter() {
-        return filter;
-    }
+  /**
+   * A capability can satisfy this requirement if the filter matches the capability.
+   */
+  public Filter getFilter() {
+    return filter;
+  }
 
-    public String getRequirementId() {
-        return requirementId;
-    }
+  /**
+   * Id of the requirement that must be unique within the same collector.
+   */
+  public String getRequirementId() {
+    return requirementId;
+  }
 
-    @Override
-    public String toString() {
-        return "RequirementDefinition [requirementId=" + requirementId + ", filter=" + filter + ", attributes="
-                + attributes + "]";
-    }
+  @Override
+  public String toString() {
+    return "RequirementDefinition [requirementId=" + requirementId + ", filter=" + filter
+        + ", attributes="
+        + attributes + "]";
+  }
 
 }

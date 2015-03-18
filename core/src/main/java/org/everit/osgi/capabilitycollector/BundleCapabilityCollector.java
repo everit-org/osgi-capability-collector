@@ -1,18 +1,17 @@
-/**
- * This file is part of Everit - OSGi Capability Collector.
+/*
+ * Copyright (C) 2011 Everit Kft. (http://www.everit.biz)
  *
- * Everit - OSGi Capability Collector is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Everit - OSGi Capability Collector is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ *         http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU Lesser General Public License
- * along with Everit - OSGi Capability Collector.  If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.everit.osgi.capabilitycollector;
 
@@ -33,94 +32,123 @@ import org.osgi.framework.wiring.BundleWiring;
 import org.osgi.util.tracker.BundleTracker;
 import org.osgi.util.tracker.BundleTrackerCustomizer;
 
+/**
+ * A Capability Collector that collects {@link BundleCapability}s.
+ */
 public class BundleCapabilityCollector extends AbstractCapabilityCollector<BundleCapability> {
 
-    private class TrackerCustomizer implements BundleTrackerCustomizer<Bundle> {
+  /**
+   * Tracks all {@link BundleCapability}s in the system. In case there is a new capability, it is
+   * passed to the {@link AbstractCapabilityCollector#addingCapablility(Object)} function. In case a
+   * {@link BundleCapability} is removed,
+   * {@link AbstractCapabilityCollector#removedCapability(Object)} is called.
+   */
+  private class TrackerCustomizer implements BundleTrackerCustomizer<Bundle> {
 
-        @Override
-        public Bundle addingBundle(final Bundle bundle, final BundleEvent event) {
-            BundleWiring bundleWiring = bundle.adapt(BundleWiring.class);
-            List<BundleCapability> capabilities = bundleWiring.getCapabilities(namespace);
-            for (BundleCapability bundleCapability : capabilities) {
-                addingCapablility(bundleCapability);
-            }
+    @Override
+    public Bundle addingBundle(final Bundle bundle, final BundleEvent event) {
+      BundleWiring bundleWiring = bundle.adapt(BundleWiring.class);
+      List<BundleCapability> capabilities = bundleWiring.getCapabilities(namespace);
+      for (BundleCapability bundleCapability : capabilities) {
+        addingCapablility(bundleCapability);
+      }
 
-            Lock writeLock = readWriteLock.writeLock();
-            writeLock.lock();
-            availableCapabilities.addAll(capabilities);
-            writeLock.unlock();
+      Lock writeLock = readWriteLock.writeLock();
+      writeLock.lock();
+      availableCapabilities.addAll(capabilities);
+      writeLock.unlock();
 
-            return bundle;
-        }
-
-        @Override
-        public void modifiedBundle(final Bundle bundle, final BundleEvent event, final Bundle object) {
-            // Do nothing as this is only about bundle state change.
-        }
-
-        @Override
-        public void removedBundle(final Bundle bundle, final BundleEvent event, final Bundle object) {
-            BundleWiring bundleWiring = bundle.adapt(BundleWiring.class);
-            List<BundleCapability> capabilities = bundleWiring.getCapabilities(namespace);
-
-            Lock writeLock = readWriteLock.writeLock();
-            writeLock.lock();
-            availableCapabilities.removeAll(capabilities);
-            writeLock.unlock();
-
-            for (BundleCapability bundleCapability : capabilities) {
-                removedCapability(bundleCapability);
-            }
-        }
-
-    }
-
-    private final Set<BundleCapability> availableCapabilities = new HashSet<BundleCapability>();
-
-    private final String namespace;
-
-    private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-
-    private final BundleTracker<Bundle> tracker;
-
-    public BundleCapabilityCollector(final BundleContext context, final String namespace,
-            final RequirementDefinition<BundleCapability>[] requirements,
-            final CapabilityConsumer<BundleCapability> capabilityConsumer, final int stateMask) {
-        super(context, requirements, capabilityConsumer);
-
-        if (((~(Bundle.RESOLVED | Bundle.STARTING | Bundle.STOPPING | Bundle.ACTIVE)) & stateMask) > 0) {
-            throw new IllegalArgumentException(
-                    "Only RESOLVED, STARTING, ACTIVE and STOPPING states are allowed in the bundle stateMask: "
-                            + stateMask);
-        }
-
-        this.namespace = namespace;
-        tracker = new BundleTracker<Bundle>(context, stateMask, new TrackerCustomizer());
+      return bundle;
     }
 
     @Override
-    protected void closeTracker() {
-        tracker.close();
+    public void modifiedBundle(final Bundle bundle, final BundleEvent event, final Bundle object) {
+      // Do nothing as this is only about bundle state change.
     }
 
     @Override
-    protected BundleCapability[] getAvailableCapabilities() {
-        Lock readLock = readWriteLock.readLock();
-        readLock.lock();
-        BundleCapability[] result = availableCapabilities.toArray(new BundleCapability[availableCapabilities.size()]);
-        readLock.unlock();
-        return result;
+    public void removedBundle(final Bundle bundle, final BundleEvent event, final Bundle object) {
+      BundleWiring bundleWiring = bundle.adapt(BundleWiring.class);
+      List<BundleCapability> capabilities = bundleWiring.getCapabilities(namespace);
+
+      Lock writeLock = readWriteLock.writeLock();
+      writeLock.lock();
+      availableCapabilities.removeAll(capabilities);
+      writeLock.unlock();
+
+      for (BundleCapability bundleCapability : capabilities) {
+        removedCapability(bundleCapability);
+      }
     }
 
-    @Override
-    protected boolean matches(final BundleCapability capability, final Filter filter) {
-        Map<String, Object> attributes = capability.getAttributes();
-        return filter.matches(attributes);
+  }
+
+  private final Set<BundleCapability> availableCapabilities = new HashSet<BundleCapability>();
+
+  private final String namespace;
+
+  private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+
+  private final BundleTracker<Bundle> tracker;
+
+  /**
+   * Constructor.
+   *
+   * @param context
+   *          The context of the bundle that collects the capabilities.
+   * @param namespace
+   *          The namespace of the {@link BundleCapability}. See
+   *          {@link BundleCapability#getNamespace()}.
+   * @param requirements
+   *          The definition of requirements. If all has a matching Capability, the collector
+   *          becomes satisfied.
+   * @param capabilityConsumer
+   *          The consumer that will be called if there is a new matching Capability or one
+   *          previously matched is not available anymore.
+   * @param stateMask
+   *          Only those {@link BundleCapability}s are tracked that belong to a {@link Bundle} that
+   *          has any of the specified states. Supported states are {@link Bundle#RESOLVED},
+   *          {@link Bundle#STARTING}, {@link Bundle#ACTIVE} and {@link Bundle#STOPPING}.
+   */
+  public BundleCapabilityCollector(final BundleContext context, final String namespace,
+      final RequirementDefinition<BundleCapability>[] requirements,
+      final CapabilityConsumer<BundleCapability> capabilityConsumer, final int stateMask) {
+    super(requirements, capabilityConsumer);
+
+    if ((~(Bundle.RESOLVED | Bundle.STARTING | Bundle.STOPPING | Bundle.ACTIVE) & stateMask) > 0) {
+      throw new IllegalArgumentException(
+          "Only RESOLVED, STARTING, ACTIVE and STOPPING states"
+              + " are allowed in the bundle stateMask: " + stateMask);
     }
 
-    @Override
-    protected void openTracker() {
-        tracker.open();
-    }
+    this.namespace = namespace;
+    tracker = new BundleTracker<Bundle>(context, stateMask, new TrackerCustomizer());
+  }
+
+  @Override
+  protected void closeTracker() {
+    tracker.close();
+  }
+
+  @Override
+  protected BundleCapability[] getAvailableCapabilities() {
+    Lock readLock = readWriteLock.readLock();
+    readLock.lock();
+    BundleCapability[] result = availableCapabilities
+        .toArray(new BundleCapability[availableCapabilities.size()]);
+    readLock.unlock();
+    return result;
+  }
+
+  @Override
+  protected boolean matches(final BundleCapability capability, final Filter filter) {
+    Map<String, Object> attributes = capability.getAttributes();
+    return filter.matches(attributes);
+  }
+
+  @Override
+  protected void openTracker() {
+    tracker.open();
+  }
 
 }

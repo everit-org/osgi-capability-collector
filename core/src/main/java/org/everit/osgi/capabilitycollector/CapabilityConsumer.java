@@ -1,26 +1,47 @@
-/**
- * This file is part of Everit - OSGi Capability Collector.
+/*
+ * Copyright (C) 2011 Everit Kft. (http://www.everit.biz)
  *
- * Everit - OSGi Capability Collector is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Everit - OSGi Capability Collector is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ *         http://www.apache.org/licenses/LICENSE-2.0
  *
- * You should have received a copy of the GNU Lesser General Public License
- * along with Everit - OSGi Capability Collector.  If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.everit.osgi.capabilitycollector;
 
+import aQute.bnd.annotation.ConsumerType;
+
+/**
+ * The consumer must be implemented by the programmer who uses this library. The consumer is
+ * notified each time
+ * <ul>
+ * <li>a new capability is available that matches an unsatisfied requirement</li>
+ * <li>a capability does not satisfy a requirement anymore due to modification</li>
+ * <li>a capability is removed that made a requirement satisfied</li>
+ * </ul>
+ *
+ * @param <C>
+ *          The type of the capability.
+ */
+@ConsumerType
 public interface CapabilityConsumer<C> {
 
-    /**
-     *
-     * @param t
-     */
-    public void accept(Suiting<C>[] suitings, Boolean satisfied);
+  /**
+   * The function that is called if there is any state change in the suitings or the collector. The
+   * programmer who uses this library must implement this function.
+   *
+   * @param suitings
+   *          The suitings that are available in this collector from now on.
+   * @param satisfied
+   *          True if all suitings are satisfied. The function will be also called with satisfied
+   *          false if there are no requirements at all but the close function of the capability is
+   *          called.
+   */
+  void accept(Suiting<C>[] suitings, boolean satisfied);
 }
