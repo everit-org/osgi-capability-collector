@@ -47,7 +47,6 @@ import org.osgi.framework.ServiceRegistration;
     @Property(name = "eosgi.testId", value = "serviceCollectorTest"),
     @Property(name = "eosgi.testEngine", value = "junit4") })
 @Service(value = ServiceReferenceCollectorTestComponent.class)
-@TestDuringDevelopment
 public class ServiceReferenceCollectorTestComponent {
 
   private static final Map<String, Object> EMPTY_ATTRIBUTE_MAP = Collections.emptyMap();
@@ -96,7 +95,6 @@ public class ServiceReferenceCollectorTestComponent {
   }
 
   @Test
-  @TestDuringDevelopment
   public void testNormalBehavior() {
     @SuppressWarnings("unchecked")
     RequirementDefinition<ServiceReference<Object>>[] items = new RequirementDefinition[] {
@@ -287,12 +285,59 @@ public class ServiceReferenceCollectorTestComponent {
 
   @Test
   @TestDuringDevelopment
+  public void testServicePropertyChangeAndOtherSatisfied() {
+    TestCapabilityConsumer<ServiceReference<Object>> actionHandler =
+        new TestCapabilityConsumer<ServiceReference<Object>>();
+
+    @SuppressWarnings("unchecked")
+    RequirementDefinition<ServiceReference<Object>>[] items = new RequirementDefinition[1];
+    items[0] = new RequirementDefinition<ServiceReference<Object>>("r1",
+        createFilter("(name=test)"), new HashMap<String, Object>());
+
+    ServiceReferenceCollector<Object> referenceTracker = new ServiceReferenceCollector<Object>(
+        context, Object.class, items, actionHandler, false);
+
+    referenceTracker.open();
+    ServiceRegistration<Object> sr1 = null;
+    ServiceRegistration<Object> sr2 = null;
+
+    try {
+
+      Dictionary<String, Object> servoceProps = new Hashtable<String, Object>();
+      servoceProps.put("name", "test");
+
+      sr1 = context.registerService(Object.class, new Object(), servoceProps);
+
+      Assert.assertTrue(actionHandler.isSatisfied());
+
+      sr2 = context.registerService(Object.class, new Object(), servoceProps);
+      actionHandler.clearHistory();
+      sr1.unregister();
+      sr1 = null;
+
+      CallParameters<ServiceReference<Object>> callParameters = actionHandler.pollCallParameters();
+      Assert.assertEquals(1, callParameters.suitings.length);
+      Assert.assertEquals(sr2.getReference(), callParameters.suitings[0].getCapability());
+
+      Assert.assertNull(actionHandler.pollCallParameters());
+    } finally {
+      if (sr1 != null) {
+        sr1.unregister();
+      }
+      if (sr2 != null) {
+        sr2.unregister();
+      }
+      referenceTracker.close();
+    }
+
+  }
+
+  @Test
   public void testUpdateItemsEmptyItemsChange() {
     TestCapabilityConsumer<ServiceReference<Object>> actionHandler =
         new TestCapabilityConsumer<ServiceReference<Object>>();
     ServiceReferenceCollector<Object> referenceTracker = new ServiceReferenceCollector<Object>(
-        context,
-        Object.class, EMPTY_ITEMS, actionHandler, false);
+        context, Object.class, EMPTY_ITEMS, actionHandler, false);
 
     referenceTracker.open();
 
