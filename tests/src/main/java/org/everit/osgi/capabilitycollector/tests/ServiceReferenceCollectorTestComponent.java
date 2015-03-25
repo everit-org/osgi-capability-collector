@@ -171,7 +171,7 @@ public class ServiceReferenceCollectorTestComponent {
 
     callParameters = capabilityConsumer.pollCallParameters();
 
-    Assert.assertFalse(callParameters.satisfied);
+    Assert.assertTrue(callParameters.satisfied);
 
     // TODO check array
 
