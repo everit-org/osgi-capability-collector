@@ -195,8 +195,9 @@ public abstract class AbstractCapabilityCollector<C> {
           changed = true;
           C newCapability = searchMatchingCapabilityForRequirement(suiting.getRequirement());
           suitings[i] = new Suiting<C>(suitings[i].getRequirement(), newCapability);
-          // TODO something is wrong as in case of service property change other is not picked up
-          satisfied = false;
+          if (newCapability == null) {
+            satisfied = false;
+          }
         }
       }
 

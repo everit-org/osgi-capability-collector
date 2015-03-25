@@ -285,7 +285,7 @@ public class ServiceReferenceCollectorTestComponent {
 
   @Test
   @TestDuringDevelopment
-  public void testServicePropertyChangeAndOtherSatisfied() {
+  public void testServicePropertyChangeAndOtherPreviouslyNonSatisfiedSatisfies() {
     TestCapabilityConsumer<ServiceReference<Object>> actionHandler =
         new TestCapabilityConsumer<ServiceReference<Object>>();
 
@@ -303,19 +303,23 @@ public class ServiceReferenceCollectorTestComponent {
 
     try {
 
-      Dictionary<String, Object> servoceProps = new Hashtable<String, Object>();
-      servoceProps.put("name", "test");
+      Dictionary<String, Object> serviceProps = new Hashtable<String, Object>();
+      serviceProps.put("name", "test");
 
-      sr1 = context.registerService(Object.class, new Object(), servoceProps);
+      sr1 = context.registerService(Object.class, new Object(), serviceProps);
 
       Assert.assertTrue(actionHandler.isSatisfied());
 
-      sr2 = context.registerService(Object.class, new Object(), servoceProps);
+      serviceProps.put("name", "test2");
+      sr2 = context.registerService(Object.class, new Object(), serviceProps);
+      serviceProps.put("name", "test");
+      sr2.setProperties(serviceProps);
       actionHandler.clearHistory();
-      sr1.unregister();
-      sr1 = null;
+      serviceProps.put("name", "test2");
+      sr1.setProperties(serviceProps);
 
       CallParameters<ServiceReference<Object>> callParameters = actionHandler.pollCallParameters();
+      Assert.assertTrue(callParameters.satisfied);
       Assert.assertEquals(1, callParameters.suitings.length);
       Assert.assertEquals(sr2.getReference(), callParameters.suitings[0].getCapability());
 

@@ -27,7 +27,7 @@
   </parent>
 
   <artifactId>org.everit.osgi.capabilitycollector.tests</artifactId>
-  <version>1.0.1-SNAPSHOT</version>
+  <version>1.0.0</version>
 
   <properties>
     <maven.compiler.source>1.7</maven.compiler.source>
@@ -48,7 +48,7 @@
             <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
             <Import-Package>*</Import-Package>
             <Export-Package />
-            <EOSGi-TestNum>17</EOSGi-TestNum>
+            <EOSGi-TestNum>18</EOSGi-TestNum>
             <Provide-Capability>testNamespace;zero:Long=0,testNamespace;one="1"</Provide-Capability>
           </instructions>
         </configuration>
@@ -89,8 +89,8 @@
               <id>equinoxtest</id>
               <framework>equinox</framework>
               <systemProperties>
-                <jetty.port>$${ if (System.getenv("EOSGI_STOP_AFTER_TESTS").equals("true")) "0"; else "4848"; }</jetty.port>
-                <jetty.home.bundle>org.eclipse.jetty.osgi.boot</jetty.home.bundle>
+                <org.osgi.service.http.port>0</org.osgi.service.http.port>
+                <org.osgi.service.http.port.secure>$${ if (System.getenv("EOSGI_STOP_AFTER_TESTS").equals("true")) "0"; else "4848"; }</org.osgi.service.http.port.secure>
                 <osgi.hook.configurators.exclude>org.eclipse.core.runtime.internal.adaptor.EclipseLogHook</osgi.hook.configurators.exclude>
               </systemProperties>
               <vmOptions>
@@ -182,20 +182,9 @@
 		<!-- Jetty with Http Service -->
 
     <dependency>
-      <groupId>org.apache.felix</groupId>
-      <artifactId>org.apache.felix.http.jetty</artifactId>
-      <version>2.3.0</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.eclipse.jetty.orbit</groupId>
-          <artifactId>javax.servlet</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.felix</groupId>
-      <artifactId>org.apache.felix.http.servlet-api</artifactId>
-      <version>1.0.0</version>
+      <groupId>org.everit.osgi</groupId>
+      <artifactId>org.everit.osgi.jetty.boot</artifactId>
+      <version>1.0.1</version>
     </dependency>
 
 		<!-- Felix webconsole with dependencies -->
