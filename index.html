@@ -1,0 +1,195 @@
+<!DOCTYPE HTML>
+<!--
+
+    Copyright (C) 2011 Everit Kft. (http://www.everit.org)
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+            http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<html>
+
+<head>
+<meta charset="utf-8">
+<title>OSGi Capability Collector</title>
+<link rel="icon" type="image/ico" href="http://www.everit.org/fonts/favicon.ico">
+
+<!--    <link rel="stylesheet" type="text/css" href="common/css/base.css">-->
+<link href="http://www.everit.org/css/bootstrap.min.css" rel="stylesheet">
+<link href="http://www.everit.org/css/docs.min.css" rel="stylesheet">
+<link href="http://www.everit.org/css/everit.css" rel="stylesheet">
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push([ '_setAccount', 'UA-15041869-4' ]);
+  _gaq.push([ '_setDomainName', 'everit.org' ]);
+  _gaq.push([ '_trackPageview' ]);
+</script>
+</head>
+
+<body class="bs-docs-home" data-spy="scroll" data-target="#affix-nav">
+  <a class="sr-only" href="#content">Skip to main content</a>
+  <header class="navbar navbar-static-top bs-docs-nav" id="top" role="banner">
+    <div class="container">
+      <div class="navbar-header">
+        <button class="navbar-toggle" type="button" data-toggle="collapse"
+          data-target=".bs-navbar-collapse">
+          <span class="sr-only">Toggle navigation</span> <span class="icon-bar"></span> <span
+            class="icon-bar"></span> <span class="icon-bar"></span>
+        </button>
+        <a href="#" class="navbar-brand">Index</a>
+      </div>
+      <nav class="collapse navbar-collapse bs-navbar-collapse" role="navigation">
+        <ul class="nav navbar-nav">
+          <li><a href="https://github.com/everit-org/osgi-capability-collector" target="_blank">Source</a></li>
+          <li><a href="http://www.everit.org/" target="_blank">Community</a></li>
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+          <li><a href="http://www.everit.biz" target="_blank">Enterprise</a></li>
+          <li><a href="http://everitorg.wordpress.com/" target="_blank">Blog</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <div class="bs-docs-masthead everit-header" id="content" role="main">
+    <div class="container">
+      <span class="bs-docs-booticon bs-docs-booticon-lg bs-docs-booticon-outline"> <img
+        class="logo" src="http://www.everit.org/fonts/sbz_e.svg" alt="E">
+      </span>
+      <p class="lead">OSGi Capability Collector</p>
+    </div>
+  </div>
+  <div class="container">
+    <div class="col-md-10">
+
+      <div class="bs-docs-featurette cookbook">
+        <h2 id="introduction" class="bs-docs-featurette-title">Introduction</h2>
+        <p>Capability Collector helps tracking capabilities that appear in an OSGi container.
+          Capabilities can be OSGi services, Bundle capabilities or any other objects that can be
+          tracked based on events.</p>
+      </div>
+      <hr class="featurette-divider">
+
+      <div class="bs-docs-featurette cookbook">
+        <h2 id="requirements" class="bs-docs-featurette-title">Requirements</h2>
+        <p>Capability Collectors tracks capabilities for the specified requirements. Each
+          requirement has the following properties:</p>
+        <ul>
+          <li><b>requirementId</b>: The id of the requirement as a String. There cannot be two
+            requirements with the same id in one CapabilityCollector at the same time.</li>
+          <li><b>filter</b>: An OSGi filter expression to tell which OSGi capabilities are
+            accepted for the requirement.</li>
+          <li><b>attributes</b>: Two requirements are identical only if their id, filter and
+            attribute map are identical. Any String-Object pairs can be stored in the map of
+            attributes, however it is highly advised to use only immutable class as the value of the
+            map.</li>
+        </ul>
+        <p>If the filter allows, the same OSGi capability can be attached to multiple
+          requirements.</p>
+        <p>A Capability Collector becomes satisfied if all of the requirements are satisfied.</p>
+      </div>
+      <hr class="featurette-divider">
+
+      <div class="bs-docs-featurette cookbook">
+        <h2 id="capabilityconsumer" class="bs-docs-featurette-title">CapabilityConsumer</h2>
+        <p>The programmer, who wants to use the library, must implement the CapabilityConsumer
+          interface. This is a functional interface that catches the events of the collector:</p>
+        <ul>
+          <li>a new capability satisfies an unsatisfied requirement</li>
+          <li>a capability that satisfied a requirement before is removed. In this case the
+            requirement becomes
+            <ul>
+              <li>unsatisfied</li>
+              <li>or remains satisfied as there is another capability that matches its filter</li>
+            </ul>
+          </li>
+        </ul>
+        <p>In case the requirement array is empty, the consumer will be notified</p>
+        <ul>
+          <li>with satisfied flag true if the collector is opened</li>
+          <li>with satisfied flag false if the collector is closed</li>
+        </ul>
+      </div>
+      <hr class="featurette-divider">
+
+      <div class="bs-docs-featurette cookbook">
+        <h2 id="current_implementations" class="bs-docs-featurette-title">Current
+          implementations</h2>
+        <p>There are two collector implementations in this library:</p>
+        <ul>
+          <li><b>ServiceReferenceCollector</b>: Tracks OSGi services</li>
+          <li><b>BundleCapabilityCollector</b>: Tracks bundle capabilities</li>
+        </ul>
+        <p>For more information, please see the javadoc of the CapabilityConsumer interface.</p>
+      </div>
+      <hr class="featurette-divider">
+
+      <div class="bs-docs-featurette cookbook">
+        <h2 id="updating_requirements" class="bs-docs-featurette-title">Updating requirements</h2>
+        <p>It is possible to update the requirements of a collector even if its opened. In that
+          case the consumer will be called with the new suitings (with the right satisfaction flag
+          value).</p>
+      </div>
+      <hr class="featurette-divider">
+    </div>
+
+    <!--        Affix-->
+    <div class="col-md-2 col-sm-0 col-xs-0">
+      <nav id="affix-nav">
+        <ul class="nav nav-pills nav-stacked everit-affix" data-spy="affix" data-offset-top="350"
+          data-offset-bottom="140">
+          <li class="active"><a href="#introduction">Introduction</a></li>
+          <li><a href="#requirements">Requirements</a></li>
+          <li><a href="#capabilityconsumer">CapabilityConsumer</a></li>
+          <li><a href="#current_implementations">Current implementations</a></li>
+          <li><a href="#updating_requirements">Updating requirements</a></li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+
+  <div></div>
+  <footer class="bs-docs-footer" role="contentinfo">
+    <div class="container">
+      <div class="bs-docs-social">
+        <ul class="bs-docs-social-buttons">
+          <li class="follow-btn "><a href="https://twitter.com/EveritOrg"
+            class="twitter-follow-button" data-show-count="true">Follow @EveritOrg</a></li>
+          <li class="tweet-btn"><a href="https://twitter.com/share"
+            class="twitter-share-button" data-url="http://www.everit.org/">Tweet</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap core JavaScript
+================================================== -->
+  <!-- Placed at the end of the document so the pages load faster -->
+  <script src="http://www.everit.org/js/jquery-2.1.1.min.js"></script>
+  <script src="http://www.everit.org/js/bootstrap.min.js"></script>
+  <script src="http://www.everit.org/js/everit.js "></script>
+  <script type="text/javascript">
+      (function() {
+        var ga = document.createElement('script');
+        ga.type = 'text/javascript';
+        ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl'
+            : 'http://www')
+            + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0];
+        s.parentNode.insertBefore(ga, s);
+      })();
+    </script>
+  <script src="http://www.everit.org/js/prettify/run_prettify.js"></script>
+</body>
+
+</html>
